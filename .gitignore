@@ -1,0 +1,129 @@
+# ============================================
+# VoraFind - Flutter / Dart
+# ============================================
+
+# Flutter / Dart generated files
+.dart_tool/
+.packages
+.pub/
+.pub-cache/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+# Coverage
+coverage/
+
+# Generated plugin registrant / localization files
+**/generated_plugin_registrant.dart
+
+# ============================================
+# Android
+# ============================================
+
+# Gradle
+.gradle/
+**/build/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+
+# Local Android SDK configuration
+local.properties
+
+# Android generated files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# ============================================
+# Signing / Secrets
+# ============================================
+
+# Keystores - NEVER commit these
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# Signing configuration
+key.properties
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# ============================================
+# iOS
+# ============================================
+
+# Xcode user-specific data
+**/xcuserdata/
+*.xcuserstate
+
+# Xcode generated files
+DerivedData/
+**/Pods/
+**/.symlinks/
+
+# iOS build artifacts
+*.app
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# ============================================
+# macOS
+# ============================================
+
+.DS_Store
+
+# ============================================
+# Windows
+# ============================================
+
+Thumbs.db
+Desktop.ini
+
+# ============================================
+# Linux
+# ============================================
+
+*~
+
+# ============================================
+# VS Code
+# ============================================
+
+.vscode/
+
+# Keep VS Code project recommendations/settings if
+# you intentionally add them later.
+# Remove the line above if you want to commit .vscode/.
+
+# ============================================
+# Temporary / Backup files
+# ============================================
+
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*.swo
+
+# ============================================
+# Flutter tool files
+# ============================================
+
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# ============================================
+# OS / editor leftovers
+# ============================================
+
+*.orig
