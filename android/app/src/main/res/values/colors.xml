@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark launch background so the splash screen matches the VoraFind dark-first theme.
+         Kept pure black to be AMOLED-friendly. -->
+    <color name="launch_background">#000000</color>
+</resources>

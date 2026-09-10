@@ -90,6 +90,30 @@ VoraFind/
 └── pubspec.yaml    # Flutter dependencies/configuration
 ```
 
+### Application layout
+
+```text
+lib/
+├── main.dart                       # Entry point (ProviderScope bootstrap)
+├── app/
+│   └── app.dart                    # Root widget: theme + navigation root
+├── core/
+│   ├── constants/
+│   │   └── app_info.dart           # Product name and core message
+│   └── theme/
+│       ├── app_colors.dart         # Dark-first, AMOLED-friendly palette
+│       ├── app_typography.dart     # Typography built on the Material 3 ramp
+│       └── app_theme.dart          # VoraFind Material theme
+└── features/
+    └── home/
+        └── home_screen.dart        # Initial application shell
+```
+
+Cross-cutting concerns live under `core/`. Product features will live under
+`features/` as they are introduced. The foundation ships a single dark theme;
+VoraFind is dark-first. State management uses Riverpod (`ProviderScope` at the
+entry point), with no feature providers yet.
+
 ## Development
 
 Make sure Flutter is installed and configured correctly.

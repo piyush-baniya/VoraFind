@@ -1,30 +1,45 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:vorafind/main.dart';
+import 'package:vorafind/app/app.dart';
+import 'package:vorafind/core/constants/app_info.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  Future<void> pumpApp(WidgetTester tester) async {
+    await tester.pumpWidget(const ProviderScope(child: VoraFindApp()));
+  }
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+  testWidgets('application boots without exceptions', (tester) async {
+    await pumpApp(tester);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+  testWidgets('home shell renders VoraFind branding', (tester) async {
+    await pumpApp(tester);
+
+    expect(find.text(AppInfo.name), findsOneWidget);
+    expect(find.text(AppInfo.tagline), findsOneWidget);
+  });
+
+  testWidgets('home shell exposes the dark theme', (tester) async {
+    await pumpApp(tester);
+
+    final context = tester.element(find.byType(Scaffold));
+    final brightness = Theme.of(context).brightness;
+    expect(brightness, Brightness.dark);
+  });
+
+  testWidgets('home shell communicates principles without fake features', (
+    tester,
+  ) async {
+    await pumpApp(tester);
+
+    expect(find.text('Local-first'), findsOneWidget);
+    expect(find.text('Offline-first'), findsOneWidget);
+    expect(find.text('Private'), findsOneWidget);
+    expect(find.text(AppInfo.privacyStatement), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
   });
 }
