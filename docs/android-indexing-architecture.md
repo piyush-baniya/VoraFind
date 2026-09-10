@@ -1,6 +1,14 @@
 # VoraFind — Android Content Discovery & Indexing Architecture
 
-Status: **Proposed (design document — no implementation yet)**
+Status: **Partially implemented — the MediaStore discovery scanner baseline has
+landed and matches this document's §6 (Kotlin owns MediaStore), §8.1 (stable
+identity/re-link signature), §11 (bounded batched, ack-gated delivery), §13
+(channel contract), and §17 (screenshot heuristic). The Drift/SQLite index, search,
+OCR, and scheduled/resumable indexing remain unimplemented.**
+
+> Concrete implementation details, the exact channel contract, projections,
+> selection gating, and the record schema live in **`docs/android-discovery.md`**.
+
 Target: Android 7.0+ (`minSdk 24`), compile/target `SDK 36`
 Owner: VoraFind engineering
 Last updated: 2026-09-11
