@@ -44,6 +44,12 @@ kotlin {
     }
 }
 
+dependencies {
+    // JVM unit tests for the pure capability/permission state logic.
+    // Test-only dependency; does not affect the APK.
+    testImplementation("junit:junit:4.13.2")
+}
+
 flutter {
     source = "../.."
 }

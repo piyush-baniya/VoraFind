@@ -374,6 +374,11 @@ scanner.
   added now (no dependency for architectural fashion, per AGENTS.md dependency rules).
 - Every message payload is versioned (`contractVersion`) so Kotlin and Dart can detect
   a drift at startup instead of failing mid-scan.
+- Runtime permission requests and the SAF picker use the platform
+  **Activity Result API** (`ActivityResultContracts`) behind the facade, so
+  `MainActivity` must extend `FlutterFragmentActivity` (which provides
+  `registerForActivityResult`) rather than plain `FlutterActivity`. See
+  `docs/android-permission-layer.md`.
 
 ---
 

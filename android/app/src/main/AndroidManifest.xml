@@ -1,4 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Media read access used by the capability/permission layer:
+         READ_EXTERNAL_STORAGE (up to Android 12) grants full shared-storage read;
+         READ_MEDIA_* replace it on Android 13+; READ_MEDIA_VISUAL_USER_SELECTED
+         is auto-granted by the OS when a user selects specific items on Android 14+.
+         No write, location, all-files, or content-contacting permissions are used. -->
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
     <application
         android:label="VoraFind"
         android:name="${applicationName}"
