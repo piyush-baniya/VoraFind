@@ -2,6 +2,9 @@ import '../database/app_database.dart' show MediaItem;
 import '../database/document_repository.dart';
 import '../database/media_repository.dart';
 import '../platform/content_access_models.dart' show ContentCategory;
+import '../semantic/embedding_provider.dart';
+import '../semantic/semantic_models.dart';
+import '../semantic/semantic_repository.dart';
 import 'search_error.dart';
 import 'search_interpreter.dart';
 import 'search_normalizer.dart';
@@ -16,15 +19,31 @@ import 'search_result.dart';
 /// everything user-facing and ranking-related lives here so future retrieval
 /// sources (OCR text, semantic/vector) can plug in below this class without a
 /// rewrite.
+///
+/// When a [SemanticSearchRepository] and [EmbeddingProvider] are supplied,
+/// every query that carries keyword tokens also produces a query embedding;
+/// semantic candidates are merged with keyword candidates before ranking so
+/// exact keyword matches still outrank weak semantic recall (docs
+/// `semantic-search.md` §Hybrid search).
 class SearchService {
   const SearchService({
     required this.repository,
     this.documentRepository,
+    this.semanticSearchRepository,
+    this.embeddingProvider,
     this.nowSeconds,
   });
 
   final MediaRepository repository;
   final DocumentRepository? documentRepository;
+
+  /// Search-side vector retrieval. When null, search degrades to pure
+  /// keyword/OCR/document matching — never an error.
+  final SemanticSearchRepository? semanticSearchRepository;
+
+  /// Embedding model used to turn the query into a vector. When null, no
+  /// query embedding is generated and semantic retrieval is skipped.
+  final EmbeddingProvider? embeddingProvider;
 
   /// Injectable clock (epoch seconds) used to resolve time words like
   /// "recent"/"this month" deterministically. Null → time words stay keywords.
@@ -59,10 +78,23 @@ class SearchService {
   ) async {
     try {
       final docRepo = documentRepository;
+      final semRepo = semanticSearchRepository;
+      final embed = embeddingProvider;
       final includeDocs = docRepo != null && _mayIncludeDocuments(prepared);
       // A pinned document type ("find pdfs") excludes MediaStore rows by
       // definition — skip media retrieval entirely instead of filtering rows.
       final pinnedDocumentTypes = prepared.documentTypes.isNotEmpty;
+
+      // Semantic retrieval requires both a repository and an embedding model,
+      // and is skipped for filter-only queries (no tokens to embed) and for
+      // document-pinned queries (the document index is the only place that
+      // matters, and it is already covered by keyword search there).
+      final runSemantic =
+          prepared.hasKeyword &&
+          semRepo != null &&
+          embed != null &&
+          embed.isAvailable &&
+          !pinnedDocumentTypes;
 
       if (!prepared.hasKeyword) {
         if (pinnedDocumentTypes) {
@@ -77,11 +109,23 @@ class SearchService {
         final docFuture = includeDocs
             ? docRepo.searchDocumentCandidates(prepared)
             : Future.value(const <DocumentSearchMatch>[]);
+        final semanticFuture = runSemantic
+            ? _semanticCandidates(prepared, semRepo, embed)
+            : Future.value(const <SemanticMatch>[]);
 
-        final (media, docs) = await (mediaFuture, docFuture).wait;
+        final (media, docs, semantic) = await (
+          mediaFuture,
+          docFuture,
+          semanticFuture,
+        ).wait;
         return [
           for (final row in media) SearchCandidate(item: row),
           for (final match in docs) SearchCandidate(document: match.document),
+          for (final match in semantic)
+            SearchCandidate(
+              semanticKey: match.stableKey,
+              semanticSimilarity: match.similarity,
+            ),
         ];
       }
 
@@ -97,12 +141,16 @@ class SearchService {
       final docContentFuture = includeDocs
           ? docRepo.searchDocumentContentCandidates(prepared)
           : Future.value(const <DocumentSearchMatch>[]);
+      final semanticFuture = runSemantic
+          ? _semanticCandidates(prepared, semRepo, embed)
+          : Future.value(const <SemanticMatch>[]);
 
-      final (media, ocr, docMeta, docContent) = await (
+      final (media, ocr, docMeta, docContent, semantic) = await (
         mediaFuture,
         ocrFuture,
         docMetaFuture,
         docContentFuture,
+        semanticFuture,
       ).wait;
 
       return _merge(
@@ -110,6 +158,7 @@ class SearchService {
         ocr: ocr,
         docMetadata: docMeta,
         docContent: docContent,
+        semantic: semantic,
       );
     } catch (_) {
       throw const SearchException.database();
@@ -133,6 +182,7 @@ class SearchService {
     required List<OcrSearchMatch> ocr,
     required List<DocumentSearchMatch> docMetadata,
     required List<DocumentSearchMatch> docContent,
+    required List<SemanticMatch> semantic,
   }) {
     final byKey = <String, SearchCandidate>{};
     final order = <String>[];
@@ -170,8 +220,66 @@ class SearchService {
       );
       if (existing == null) order.add(key);
     }
+    for (final match in semantic) {
+      final key = match.stableKey;
+      final existing = byKey[key];
+      if (existing == null) {
+        byKey[key] = SearchCandidate(
+          semanticKey: key,
+          semanticSimilarity: match.similarity,
+        );
+        order.add(key);
+      } else if (existing.semanticSimilarity == null) {
+        byKey[key] = SearchCandidate(
+          item: existing.item,
+          document: existing.document,
+          ocrText: existing.ocrText,
+          documentText: existing.documentText,
+          semanticKey: key,
+          semanticSimilarity: match.similarity,
+        );
+      }
+    }
 
     return [for (final key in order) byKey[key]!];
+  }
+
+  /// Embeds the query and retrieves semantic candidates from the vector store.
+  /// Never throws on semantic failure — returns an empty list so keyword
+  /// results still surface (docs `semantic-search.md` §Hybrid search).
+  Future<List<SemanticMatch>> _semanticCandidates(
+    NormalizedSearchQuery prepared,
+    SemanticSearchRepository? semRepo,
+    EmbeddingProvider? embed,
+  ) async {
+    if (semRepo == null || embed == null || !embed.isAvailable) {
+      return const <SemanticMatch>[];
+    }
+    try {
+      final tokens = prepared.tokens;
+      final queryText = tokens.join(' ');
+      final queryVector = await embed.embed(queryText);
+      if (queryVector.isEmpty) return const <SemanticMatch>[];
+      final mimeTypes = prepared.documentTypes
+          .expand((t) => t.mimeTypes)
+          .toList();
+      return await semRepo.retrieveSemanticCandidates(
+        queryVector: queryVector,
+        modelId: embed.modelId,
+        dimensions: queryVector.length,
+        maxResults: prepared.limit * SemanticDefaults.candidatePoolMultiple,
+        includeMedia: !prepared.documentTypes.isNotEmpty,
+        includeDocuments: _mayIncludeDocuments(prepared),
+        mediaCategories: prepared.categories.map((c) => c.name).toList(),
+        isScreenshot: prepared.isScreenshot,
+        documentMimeTypes: mimeTypes.isNotEmpty ? mimeTypes : null,
+        dateFrom: prepared.dateFrom,
+        dateTo: prepared.dateTo,
+        pathPrefix: prepared.pathPrefix,
+      );
+    } catch (_) {
+      return const <SemanticMatch>[];
+    }
   }
 
   /// Validates and normalizes [query]. Public and pure for unit testing.

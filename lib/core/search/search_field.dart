@@ -20,6 +20,11 @@ enum SearchField {
 
   /// Text extracted from a local document body (PDF or plain text).
   documentText,
+
+  /// Semantic/vector similarity match — the row was retrieved because its
+  /// stored embedding is close to the query embedding, not because of a
+  /// keyword hit. Weighted by [SearchRanker] via [SemanticDefaults].
+  semantic,
 }
 
 /// How strongly one token matched one field value.

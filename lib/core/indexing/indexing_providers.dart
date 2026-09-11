@@ -4,9 +4,10 @@ import '../database/providers.dart';
 import '../database/synchronization_coordinator.dart';
 import '../documents/document_providers.dart';
 import '../ocr/ocr_providers.dart';
-import '../platform/content_access_models.dart';
 import '../platform/content_access.dart';
+import '../platform/content_access_models.dart' show ContentCategory;
 import '../platform/media_discovery.dart';
+import '../semantic/semantic_providers.dart';
 import 'indexing_coordinator.dart';
 
 /// Adapts the media [SynchronizationCoordinator] to the pipeline's
@@ -40,6 +41,7 @@ final synchronizationCoordinatorProvider = Provider<SynchronizationCoordinator>(
 final indexingCoordinatorProvider = Provider<IndexingCoordinator>((ref) {
   final documents = ref.watch(documentCoordinatorProvider);
   final ocr = ref.watch(ocrCoordinatorProvider);
+  final semantic = ref.watch(semanticIndexCoordinatorProvider);
   return IndexingCoordinator(
     mediaSync: _SynchronizationStage(
       ref.watch(synchronizationCoordinatorProvider),
@@ -50,6 +52,8 @@ final indexingCoordinatorProvider = Provider<IndexingCoordinator>((ref) {
     runOcr: ocr.start,
     cancelOcr: ocr.cancel,
     ocrProgress: ocr.progress,
+    runSemantic: semantic?.run,
+    cancelSemantic: semantic?.cancel,
     mediaStats: () => ref.read(mediaRepositoryProvider).stats(),
   );
 });

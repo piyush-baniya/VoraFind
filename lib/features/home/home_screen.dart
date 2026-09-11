@@ -678,6 +678,7 @@ class _SearchResultTile extends StatelessWidget {
     SearchField.genre => 'genre',
     SearchField.ocrText => 'OCR text',
     SearchField.documentText => 'document text',
+    SearchField.semantic => 'semantic match',
   };
 
   static String _categoryLabel(ContentCategory category) => switch (category) {

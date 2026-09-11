@@ -4817,6 +4817,722 @@ class DocumentContentCompanion extends UpdateCompanion<DocumentContentData> {
   }
 }
 
+class $SemanticEmbeddingsTable extends SemanticEmbeddings
+    with TableInfo<$SemanticEmbeddingsTable, SemanticEmbedding> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SemanticEmbeddingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _stableKeyMeta = const VerificationMeta(
+    'stableKey',
+  );
+  @override
+  late final GeneratedColumn<String> stableKey = GeneratedColumn<String>(
+    'stable_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<SemanticContentType, String>
+  contentType =
+      GeneratedColumn<String>(
+        'content_type',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<SemanticContentType>(
+        $SemanticEmbeddingsTable.$convertercontentType,
+      );
+  static const VerificationMeta _sourceRevisionMeta = const VerificationMeta(
+    'sourceRevision',
+  );
+  @override
+  late final GeneratedColumn<int> sourceRevision = GeneratedColumn<int>(
+    'source_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelIdMeta = const VerificationMeta(
+    'modelId',
+  );
+  @override
+  late final GeneratedColumn<String> modelId = GeneratedColumn<String>(
+    'model_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dimensionsMeta = const VerificationMeta(
+    'dimensions',
+  );
+  @override
+  late final GeneratedColumn<int> dimensions = GeneratedColumn<int>(
+    'dimensions',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _embeddingDataMeta = const VerificationMeta(
+    'embeddingData',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> embeddingData =
+      GeneratedColumn<Uint8List>(
+        'embedding_data',
+        aliasedName,
+        true,
+        type: DriftSqlType.blob,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _quantizationMeta = const VerificationMeta(
+    'quantization',
+  );
+  @override
+  late final GeneratedColumn<String> quantization = GeneratedColumn<String>(
+    'quantization',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _errorCodeMeta = const VerificationMeta(
+    'errorCode',
+  );
+  @override
+  late final GeneratedColumn<String> errorCode = GeneratedColumn<String>(
+    'error_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    stableKey,
+    contentType,
+    sourceRevision,
+    modelId,
+    dimensions,
+    embeddingData,
+    quantization,
+    status,
+    errorCode,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'semantic_embeddings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SemanticEmbedding> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('stable_key')) {
+      context.handle(
+        _stableKeyMeta,
+        stableKey.isAcceptableOrUnknown(data['stable_key']!, _stableKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stableKeyMeta);
+    }
+    if (data.containsKey('source_revision')) {
+      context.handle(
+        _sourceRevisionMeta,
+        sourceRevision.isAcceptableOrUnknown(
+          data['source_revision']!,
+          _sourceRevisionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceRevisionMeta);
+    }
+    if (data.containsKey('model_id')) {
+      context.handle(
+        _modelIdMeta,
+        modelId.isAcceptableOrUnknown(data['model_id']!, _modelIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelIdMeta);
+    }
+    if (data.containsKey('dimensions')) {
+      context.handle(
+        _dimensionsMeta,
+        dimensions.isAcceptableOrUnknown(data['dimensions']!, _dimensionsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dimensionsMeta);
+    }
+    if (data.containsKey('embedding_data')) {
+      context.handle(
+        _embeddingDataMeta,
+        embeddingData.isAcceptableOrUnknown(
+          data['embedding_data']!,
+          _embeddingDataMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quantization')) {
+      context.handle(
+        _quantizationMeta,
+        quantization.isAcceptableOrUnknown(
+          data['quantization']!,
+          _quantizationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('error_code')) {
+      context.handle(
+        _errorCodeMeta,
+        errorCode.isAcceptableOrUnknown(data['error_code']!, _errorCodeMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {stableKey, contentType};
+  @override
+  SemanticEmbedding map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SemanticEmbedding(
+      stableKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stable_key'],
+      )!,
+      contentType: $SemanticEmbeddingsTable.$convertercontentType.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}content_type'],
+        )!,
+      ),
+      sourceRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_revision'],
+      )!,
+      modelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_id'],
+      )!,
+      dimensions: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}dimensions'],
+      )!,
+      embeddingData: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}embedding_data'],
+      ),
+      quantization: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quantization'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      errorCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_code'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $SemanticEmbeddingsTable createAlias(String alias) {
+    return $SemanticEmbeddingsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<SemanticContentType, String> $convertercontentType =
+      const SemanticContentTypeConverter();
+}
+
+class SemanticEmbedding extends DataClass
+    implements Insertable<SemanticEmbedding> {
+  /// Stable identity of the source item (`media_items` or `documents`).
+  final String stableKey;
+
+  /// Which source surface the vector belongs to ([SemanticContentType.name]).
+  final SemanticContentType contentType;
+
+  /// `metadata_revision` (media) or `source_revision` (document) this vector
+  /// was produced from. A source revision bump makes the vector stale.
+  final int sourceRevision;
+
+  /// The embedding configuration this vector was produced with
+  /// (`EmbeddingProvider.modelId`). A model change invalidates the vector.
+  final String modelId;
+
+  /// Vector dimensionality (the provider's `dimensions`).
+  final int dimensions;
+
+  /// Serially encoded vector bytes (little-endian Float32 when
+  /// [quantization] is [SemanticDefaults.quantizationF32]); null while not
+  /// completed. Never more than ~384×4 bytes + overhead.
+  final Uint8List? embeddingData;
+
+  /// Encoding tag for [embeddingData] ([SemanticDefaults.quantizationF32]).
+  final String? quantization;
+
+  /// Durable embedding status ([SemanticEmbeddingStatus.name]).
+  final String status;
+
+  /// Stable failure code (`EmbeddingErrorCode.name`); null when not an error.
+  final String? errorCode;
+
+  /// Epoch seconds of the first write.
+  final int createdAt;
+
+  /// Epoch seconds of the most recent write (drives retry cooldowns).
+  final int updatedAt;
+  const SemanticEmbedding({
+    required this.stableKey,
+    required this.contentType,
+    required this.sourceRevision,
+    required this.modelId,
+    required this.dimensions,
+    this.embeddingData,
+    this.quantization,
+    required this.status,
+    this.errorCode,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['stable_key'] = Variable<String>(stableKey);
+    {
+      map['content_type'] = Variable<String>(
+        $SemanticEmbeddingsTable.$convertercontentType.toSql(contentType),
+      );
+    }
+    map['source_revision'] = Variable<int>(sourceRevision);
+    map['model_id'] = Variable<String>(modelId);
+    map['dimensions'] = Variable<int>(dimensions);
+    if (!nullToAbsent || embeddingData != null) {
+      map['embedding_data'] = Variable<Uint8List>(embeddingData);
+    }
+    if (!nullToAbsent || quantization != null) {
+      map['quantization'] = Variable<String>(quantization);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || errorCode != null) {
+      map['error_code'] = Variable<String>(errorCode);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  SemanticEmbeddingsCompanion toCompanion(bool nullToAbsent) {
+    return SemanticEmbeddingsCompanion(
+      stableKey: Value(stableKey),
+      contentType: Value(contentType),
+      sourceRevision: Value(sourceRevision),
+      modelId: Value(modelId),
+      dimensions: Value(dimensions),
+      embeddingData: embeddingData == null && nullToAbsent
+          ? const Value.absent()
+          : Value(embeddingData),
+      quantization: quantization == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quantization),
+      status: Value(status),
+      errorCode: errorCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorCode),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory SemanticEmbedding.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SemanticEmbedding(
+      stableKey: serializer.fromJson<String>(json['stableKey']),
+      contentType: serializer.fromJson<SemanticContentType>(
+        json['contentType'],
+      ),
+      sourceRevision: serializer.fromJson<int>(json['sourceRevision']),
+      modelId: serializer.fromJson<String>(json['modelId']),
+      dimensions: serializer.fromJson<int>(json['dimensions']),
+      embeddingData: serializer.fromJson<Uint8List?>(json['embeddingData']),
+      quantization: serializer.fromJson<String?>(json['quantization']),
+      status: serializer.fromJson<String>(json['status']),
+      errorCode: serializer.fromJson<String?>(json['errorCode']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'stableKey': serializer.toJson<String>(stableKey),
+      'contentType': serializer.toJson<SemanticContentType>(contentType),
+      'sourceRevision': serializer.toJson<int>(sourceRevision),
+      'modelId': serializer.toJson<String>(modelId),
+      'dimensions': serializer.toJson<int>(dimensions),
+      'embeddingData': serializer.toJson<Uint8List?>(embeddingData),
+      'quantization': serializer.toJson<String?>(quantization),
+      'status': serializer.toJson<String>(status),
+      'errorCode': serializer.toJson<String?>(errorCode),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  SemanticEmbedding copyWith({
+    String? stableKey,
+    SemanticContentType? contentType,
+    int? sourceRevision,
+    String? modelId,
+    int? dimensions,
+    Value<Uint8List?> embeddingData = const Value.absent(),
+    Value<String?> quantization = const Value.absent(),
+    String? status,
+    Value<String?> errorCode = const Value.absent(),
+    int? createdAt,
+    int? updatedAt,
+  }) => SemanticEmbedding(
+    stableKey: stableKey ?? this.stableKey,
+    contentType: contentType ?? this.contentType,
+    sourceRevision: sourceRevision ?? this.sourceRevision,
+    modelId: modelId ?? this.modelId,
+    dimensions: dimensions ?? this.dimensions,
+    embeddingData: embeddingData.present
+        ? embeddingData.value
+        : this.embeddingData,
+    quantization: quantization.present ? quantization.value : this.quantization,
+    status: status ?? this.status,
+    errorCode: errorCode.present ? errorCode.value : this.errorCode,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  SemanticEmbedding copyWithCompanion(SemanticEmbeddingsCompanion data) {
+    return SemanticEmbedding(
+      stableKey: data.stableKey.present ? data.stableKey.value : this.stableKey,
+      contentType: data.contentType.present
+          ? data.contentType.value
+          : this.contentType,
+      sourceRevision: data.sourceRevision.present
+          ? data.sourceRevision.value
+          : this.sourceRevision,
+      modelId: data.modelId.present ? data.modelId.value : this.modelId,
+      dimensions: data.dimensions.present
+          ? data.dimensions.value
+          : this.dimensions,
+      embeddingData: data.embeddingData.present
+          ? data.embeddingData.value
+          : this.embeddingData,
+      quantization: data.quantization.present
+          ? data.quantization.value
+          : this.quantization,
+      status: data.status.present ? data.status.value : this.status,
+      errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SemanticEmbedding(')
+          ..write('stableKey: $stableKey, ')
+          ..write('contentType: $contentType, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('modelId: $modelId, ')
+          ..write('dimensions: $dimensions, ')
+          ..write('embeddingData: $embeddingData, ')
+          ..write('quantization: $quantization, ')
+          ..write('status: $status, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    stableKey,
+    contentType,
+    sourceRevision,
+    modelId,
+    dimensions,
+    $driftBlobEquality.hash(embeddingData),
+    quantization,
+    status,
+    errorCode,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SemanticEmbedding &&
+          other.stableKey == this.stableKey &&
+          other.contentType == this.contentType &&
+          other.sourceRevision == this.sourceRevision &&
+          other.modelId == this.modelId &&
+          other.dimensions == this.dimensions &&
+          $driftBlobEquality.equals(other.embeddingData, this.embeddingData) &&
+          other.quantization == this.quantization &&
+          other.status == this.status &&
+          other.errorCode == this.errorCode &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class SemanticEmbeddingsCompanion extends UpdateCompanion<SemanticEmbedding> {
+  final Value<String> stableKey;
+  final Value<SemanticContentType> contentType;
+  final Value<int> sourceRevision;
+  final Value<String> modelId;
+  final Value<int> dimensions;
+  final Value<Uint8List?> embeddingData;
+  final Value<String?> quantization;
+  final Value<String> status;
+  final Value<String?> errorCode;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const SemanticEmbeddingsCompanion({
+    this.stableKey = const Value.absent(),
+    this.contentType = const Value.absent(),
+    this.sourceRevision = const Value.absent(),
+    this.modelId = const Value.absent(),
+    this.dimensions = const Value.absent(),
+    this.embeddingData = const Value.absent(),
+    this.quantization = const Value.absent(),
+    this.status = const Value.absent(),
+    this.errorCode = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SemanticEmbeddingsCompanion.insert({
+    required String stableKey,
+    required SemanticContentType contentType,
+    required int sourceRevision,
+    required String modelId,
+    required int dimensions,
+    this.embeddingData = const Value.absent(),
+    this.quantization = const Value.absent(),
+    required String status,
+    this.errorCode = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : stableKey = Value(stableKey),
+       contentType = Value(contentType),
+       sourceRevision = Value(sourceRevision),
+       modelId = Value(modelId),
+       dimensions = Value(dimensions),
+       status = Value(status),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<SemanticEmbedding> custom({
+    Expression<String>? stableKey,
+    Expression<String>? contentType,
+    Expression<int>? sourceRevision,
+    Expression<String>? modelId,
+    Expression<int>? dimensions,
+    Expression<Uint8List>? embeddingData,
+    Expression<String>? quantization,
+    Expression<String>? status,
+    Expression<String>? errorCode,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (stableKey != null) 'stable_key': stableKey,
+      if (contentType != null) 'content_type': contentType,
+      if (sourceRevision != null) 'source_revision': sourceRevision,
+      if (modelId != null) 'model_id': modelId,
+      if (dimensions != null) 'dimensions': dimensions,
+      if (embeddingData != null) 'embedding_data': embeddingData,
+      if (quantization != null) 'quantization': quantization,
+      if (status != null) 'status': status,
+      if (errorCode != null) 'error_code': errorCode,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SemanticEmbeddingsCompanion copyWith({
+    Value<String>? stableKey,
+    Value<SemanticContentType>? contentType,
+    Value<int>? sourceRevision,
+    Value<String>? modelId,
+    Value<int>? dimensions,
+    Value<Uint8List?>? embeddingData,
+    Value<String?>? quantization,
+    Value<String>? status,
+    Value<String?>? errorCode,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return SemanticEmbeddingsCompanion(
+      stableKey: stableKey ?? this.stableKey,
+      contentType: contentType ?? this.contentType,
+      sourceRevision: sourceRevision ?? this.sourceRevision,
+      modelId: modelId ?? this.modelId,
+      dimensions: dimensions ?? this.dimensions,
+      embeddingData: embeddingData ?? this.embeddingData,
+      quantization: quantization ?? this.quantization,
+      status: status ?? this.status,
+      errorCode: errorCode ?? this.errorCode,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (stableKey.present) {
+      map['stable_key'] = Variable<String>(stableKey.value);
+    }
+    if (contentType.present) {
+      map['content_type'] = Variable<String>(
+        $SemanticEmbeddingsTable.$convertercontentType.toSql(contentType.value),
+      );
+    }
+    if (sourceRevision.present) {
+      map['source_revision'] = Variable<int>(sourceRevision.value);
+    }
+    if (modelId.present) {
+      map['model_id'] = Variable<String>(modelId.value);
+    }
+    if (dimensions.present) {
+      map['dimensions'] = Variable<int>(dimensions.value);
+    }
+    if (embeddingData.present) {
+      map['embedding_data'] = Variable<Uint8List>(embeddingData.value);
+    }
+    if (quantization.present) {
+      map['quantization'] = Variable<String>(quantization.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (errorCode.present) {
+      map['error_code'] = Variable<String>(errorCode.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SemanticEmbeddingsCompanion(')
+          ..write('stableKey: $stableKey, ')
+          ..write('contentType: $contentType, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('modelId: $modelId, ')
+          ..write('dimensions: $dimensions, ')
+          ..write('embeddingData: $embeddingData, ')
+          ..write('quantization: $quantization, ')
+          ..write('status: $status, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4828,6 +5544,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $DocumentContentTable documentContent = $DocumentContentTable(
     this,
   );
+  late final $SemanticEmbeddingsTable semanticEmbeddings =
+      $SemanticEmbeddingsTable(this);
   late final Index idxMediaCategoryDateModified = Index(
     'idx_media_category_date_modified',
     'CREATE INDEX idx_media_category_date_modified ON media_items (category, date_modified)',
@@ -4872,6 +5590,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_document_content_status_key',
     'CREATE INDEX idx_document_content_status_key ON document_content (status, document_stable_key)',
   );
+  late final Index idxSemanticStatusKey = Index(
+    'idx_semantic_status_key',
+    'CREATE INDEX idx_semantic_status_key ON semantic_embeddings (status, stable_key)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4883,6 +5605,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     safGrants,
     documents,
     documentContent,
+    semanticEmbeddings,
     idxMediaCategoryDateModified,
     idxMediaVolumeMediaStoreId,
     idxMediaMimeType,
@@ -4894,6 +5617,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxDocumentsAccessStable,
     idxDocumentsDateModified,
     idxDocumentContentStatusKey,
+    idxSemanticStatusKey,
   ];
 }
 
@@ -7124,6 +7848,360 @@ typedef $$DocumentContentTableProcessedTableManager =
       DocumentContentData,
       PrefetchHooks Function()
     >;
+typedef $$SemanticEmbeddingsTableCreateCompanionBuilder =
+    SemanticEmbeddingsCompanion Function({
+      required String stableKey,
+      required SemanticContentType contentType,
+      required int sourceRevision,
+      required String modelId,
+      required int dimensions,
+      Value<Uint8List?> embeddingData,
+      Value<String?> quantization,
+      required String status,
+      Value<String?> errorCode,
+      required int createdAt,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$SemanticEmbeddingsTableUpdateCompanionBuilder =
+    SemanticEmbeddingsCompanion Function({
+      Value<String> stableKey,
+      Value<SemanticContentType> contentType,
+      Value<int> sourceRevision,
+      Value<String> modelId,
+      Value<int> dimensions,
+      Value<Uint8List?> embeddingData,
+      Value<String?> quantization,
+      Value<String> status,
+      Value<String?> errorCode,
+      Value<int> createdAt,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$SemanticEmbeddingsTableFilterComposer
+    extends Composer<_$AppDatabase, $SemanticEmbeddingsTable> {
+  $$SemanticEmbeddingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    SemanticContentType,
+    SemanticContentType,
+    String
+  >
+  get contentType => $composableBuilder(
+    column: $table.contentType,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelId => $composableBuilder(
+    column: $table.modelId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dimensions => $composableBuilder(
+    column: $table.dimensions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get embeddingData => $composableBuilder(
+    column: $table.embeddingData,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quantization => $composableBuilder(
+    column: $table.quantization,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SemanticEmbeddingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SemanticEmbeddingsTable> {
+  $$SemanticEmbeddingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contentType => $composableBuilder(
+    column: $table.contentType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelId => $composableBuilder(
+    column: $table.modelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dimensions => $composableBuilder(
+    column: $table.dimensions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get embeddingData => $composableBuilder(
+    column: $table.embeddingData,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quantization => $composableBuilder(
+    column: $table.quantization,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SemanticEmbeddingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SemanticEmbeddingsTable> {
+  $$SemanticEmbeddingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get stableKey =>
+      $composableBuilder(column: $table.stableKey, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<SemanticContentType, String>
+  get contentType => $composableBuilder(
+    column: $table.contentType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelId =>
+      $composableBuilder(column: $table.modelId, builder: (column) => column);
+
+  GeneratedColumn<int> get dimensions => $composableBuilder(
+    column: $table.dimensions,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<Uint8List> get embeddingData => $composableBuilder(
+    column: $table.embeddingData,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get quantization => $composableBuilder(
+    column: $table.quantization,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get errorCode =>
+      $composableBuilder(column: $table.errorCode, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$SemanticEmbeddingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SemanticEmbeddingsTable,
+          SemanticEmbedding,
+          $$SemanticEmbeddingsTableFilterComposer,
+          $$SemanticEmbeddingsTableOrderingComposer,
+          $$SemanticEmbeddingsTableAnnotationComposer,
+          $$SemanticEmbeddingsTableCreateCompanionBuilder,
+          $$SemanticEmbeddingsTableUpdateCompanionBuilder,
+          (
+            SemanticEmbedding,
+            BaseReferences<
+              _$AppDatabase,
+              $SemanticEmbeddingsTable,
+              SemanticEmbedding
+            >,
+          ),
+          SemanticEmbedding,
+          PrefetchHooks Function()
+        > {
+  $$SemanticEmbeddingsTableTableManager(
+    _$AppDatabase db,
+    $SemanticEmbeddingsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SemanticEmbeddingsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SemanticEmbeddingsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SemanticEmbeddingsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> stableKey = const Value.absent(),
+                Value<SemanticContentType> contentType = const Value.absent(),
+                Value<int> sourceRevision = const Value.absent(),
+                Value<String> modelId = const Value.absent(),
+                Value<int> dimensions = const Value.absent(),
+                Value<Uint8List?> embeddingData = const Value.absent(),
+                Value<String?> quantization = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> errorCode = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SemanticEmbeddingsCompanion(
+                stableKey: stableKey,
+                contentType: contentType,
+                sourceRevision: sourceRevision,
+                modelId: modelId,
+                dimensions: dimensions,
+                embeddingData: embeddingData,
+                quantization: quantization,
+                status: status,
+                errorCode: errorCode,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String stableKey,
+                required SemanticContentType contentType,
+                required int sourceRevision,
+                required String modelId,
+                required int dimensions,
+                Value<Uint8List?> embeddingData = const Value.absent(),
+                Value<String?> quantization = const Value.absent(),
+                required String status,
+                Value<String?> errorCode = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => SemanticEmbeddingsCompanion.insert(
+                stableKey: stableKey,
+                contentType: contentType,
+                sourceRevision: sourceRevision,
+                modelId: modelId,
+                dimensions: dimensions,
+                embeddingData: embeddingData,
+                quantization: quantization,
+                status: status,
+                errorCode: errorCode,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SemanticEmbeddingsTable, SemanticEmbedding>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $SemanticEmbeddingsTable,
+                    SemanticEmbedding
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SemanticEmbeddingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SemanticEmbeddingsTable,
+      SemanticEmbedding,
+      $$SemanticEmbeddingsTableFilterComposer,
+      $$SemanticEmbeddingsTableOrderingComposer,
+      $$SemanticEmbeddingsTableAnnotationComposer,
+      $$SemanticEmbeddingsTableCreateCompanionBuilder,
+      $$SemanticEmbeddingsTableUpdateCompanionBuilder,
+      (
+        SemanticEmbedding,
+        BaseReferences<
+          _$AppDatabase,
+          $SemanticEmbeddingsTable,
+          SemanticEmbedding
+        >,
+      ),
+      SemanticEmbedding,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -7140,4 +8218,6 @@ class $AppDatabaseManager {
       $$DocumentsTableTableManager(_db, _db.documents);
   $$DocumentContentTableTableManager get documentContent =>
       $$DocumentContentTableTableManager(_db, _db.documentContent);
+  $$SemanticEmbeddingsTableTableManager get semanticEmbeddings =>
+      $$SemanticEmbeddingsTableTableManager(_db, _db.semanticEmbeddings);
 }

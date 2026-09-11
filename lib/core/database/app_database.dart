@@ -9,6 +9,9 @@ import '../documents/document_models.dart'
         DocumentContentStatusConverter;
 import '../ocr/ocr_models.dart' show OcrStatus, OcrStatusConverter;
 import '../search/search_normalizer.dart';
+import '../semantic/semantic_embeddings_table.dart';
+import '../semantic/semantic_models.dart'
+    show SemanticContentType, SemanticContentTypeConverter;
 import 'document_content_table.dart';
 import 'documents_table.dart';
 import 'index_state_table.dart';
@@ -30,7 +33,9 @@ part 'app_database.g.dart';
 /// `ocr.md`) and lifts the normalizer to Unicode-aware folding so that rows
 /// re-backfilled at v4 match OCR text the same way. Schema v5 adds SAF
 /// document tables (`saf_grants`, `documents`, `document_content`) so PDFs
-/// and plain-text files are indexed separately from MediaStore media.
+/// and plain-text files are indexed separately from MediaStore media. Schema
+/// v6 adds `semantic_embeddings`, the local vector store for semantic search
+/// (docs `semantic-search.md`).
 @DriftDatabase(
   tables: [
     MediaItems,
@@ -39,6 +44,7 @@ part 'app_database.g.dart';
     SafGrants,
     Documents,
     DocumentContent,
+    SemanticEmbeddings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -49,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forApp() : super(driftDatabase(name: 'vorafind'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -75,6 +81,9 @@ class AppDatabase extends _$AppDatabase {
         await m.createTable(safGrants);
         await m.createTable(documents);
         await m.createTable(documentContent);
+      }
+      if (from < 6) {
+        await m.createTable(semanticEmbeddings);
       }
     },
   );

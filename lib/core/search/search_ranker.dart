@@ -13,13 +13,20 @@ class SearchCandidate {
     this.document,
     this.ocrText,
     this.documentText,
+    this.semanticKey,
+    this.semanticSimilarity,
   }) : assert(
-         item != null || document != null,
-         'Candidate must provide either an item or a document',
+         item != null || document != null || semanticKey != null,
+         "Candidate must provide an item, a document, or a semantic key",
        );
 
   final MediaItem? item;
   final Document? document;
+
+  /// Stable key for a semantic-only candidate (no local row yet). When set,
+  /// [item] and [document] are null and the ranker treats this as a semantic
+  /// match whose row is resolved from the existing media/document pool.
+  final String? semanticKey;
 
   /// Normalized OCR text (`ocr_content.normalized_text`), when this candidate
   /// came from OCR retrieval and was still current.
@@ -28,6 +35,12 @@ class SearchCandidate {
   /// Normalized document text (`document_content.normalized_text`), when this
   /// candidate came from document text retrieval.
   final String? documentText;
+
+  /// Cosine similarity of the stored embedding against the query embedding,
+  /// when this candidate came from semantic retrieval. `null` for keyword-only
+  /// candidates. Always paired with a [SearchField.semantic] match in
+  /// [SearchResult.matches] by the ranker.
+  final double? semanticSimilarity;
 }
 
 /// Result of scoring one candidate (row + optional OCR/document text) against
@@ -74,6 +87,13 @@ class SearchScorer {
     SearchField.albumArtist: 8,
     SearchField.genre: 8,
   };
+
+  /// Rank points a perfect semantic match contributes. Deliberately below the
+  /// weakest exact single-token filename hit (displayName 50 × exact 3 = 150)
+  /// and below title/OCR exact hits, so an exact keyword match always beats a
+  /// semantic-only match, while a strong semantic match still outranks the
+  /// weakest OCR substring hits (20). See `docs/semantic-search.md` §Hybrid.
+  static const int semanticRankWeight = 30;
 
   /// Multiplier per match strength: an exact whole-word match outweighs a
   /// prefix, which outweighs a plain substring. This is what makes
@@ -142,6 +162,25 @@ class SearchScorer {
     return ScoredMatch(score: base + bonus, matches: matches);
   }
 
+  /// Scores a purely semantic hit: `similarity` in [0, 1] maps linearly to
+  /// [0, semanticRankWeight]. Returns a single [SearchField.semantic] match so
+  /// the result can explain *why* it surfaced. No keyword tokens are consumed —
+  /// semantic and keyword scores are additive in [SearchRanker].
+  ScoredMatch scoreSemantic(double similarity) {
+    final clamped = similarity.clamp(0.0, 1.0);
+    final points = (clamped * semanticRankWeight).round();
+    return ScoredMatch(
+      score: points,
+      matches: [
+        MatchInfo(
+          field: SearchField.semantic,
+          token: '',
+          strength: MatchStrength.substring,
+        ),
+      ],
+    );
+  }
+
   /// Best strength across the field's normalized words, or null when the token
   /// does not appear at all.
   static MatchStrength? _bestStrength(List<String> words, String token) {
@@ -178,6 +217,21 @@ class SearchRanker {
   ) {
     final results = candidates
         .map((candidate) {
+          // Combine keyword score (exact/weighted) with optional semantic
+          // similarity. A perfect semantic match contributes less than even a
+          // single exact token hit on the filename, so keyword precision always
+          // outranks fuzzy semantic recall (AGENTS.md §6 product priorities:
+          // correctness > recall).
+          final semanticScored = candidate.semanticSimilarity == null
+              ? null
+              : scorer.scoreSemantic(candidate.semanticSimilarity!);
+          final int semanticScore = semanticScored?.score ?? 0;
+          final matches = <MatchInfo>[];
+          if (semanticScored != null) {
+            matches.addAll(semanticScored.matches);
+          }
+          int keywordScore = 0;
+
           if (candidate.document != null) {
             final doc = candidate.document!;
             final scored = scorer.score(
@@ -186,6 +240,8 @@ class SearchRanker {
               documentText: candidate.documentText,
               tokens: query.tokens,
             );
+            keywordScore = scored.score;
+            matches.addAll(scored.matches);
             return SearchResult(
               stableKey: doc.stableKey,
               contentUri: doc.uri,
@@ -202,8 +258,8 @@ class SearchRanker {
               height: null,
               durationMs: null,
               isScreenshot: false,
-              score: scored.score,
-              matches: scored.matches,
+              score: keywordScore + semanticScore,
+              matches: matches,
             );
           }
           final row = candidate.item!;
@@ -219,6 +275,8 @@ class SearchRanker {
             ocrText: candidate.ocrText,
             tokens: query.tokens,
           );
+          keywordScore = scored.score;
+          matches.addAll(scored.matches);
           return SearchResult(
             stableKey: row.stableKey,
             contentUri: row.contentUri,
@@ -235,8 +293,8 @@ class SearchRanker {
             height: row.height,
             durationMs: row.durationMs,
             isScreenshot: row.isScreenshot,
-            score: scored.score,
-            matches: scored.matches,
+            score: keywordScore + semanticScore,
+            matches: matches,
           );
         })
         .toList(growable: false);

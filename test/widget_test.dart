@@ -113,18 +113,18 @@ class _NoSync implements IndexingMediaSync {
 /// never complete inside the FakeAsync widget-test environment.
 class _IdlePipeline extends IndexingCoordinator {
   _IdlePipeline()
-      : super(
-          mediaSync: const _NoSync(),
-          runDocuments: () async =>
-              const DocumentRunSummary(status: DocumentRunStatus.completed),
-          cancelDocuments: () {},
-          documentProgress: const Stream<DocumentRunProgress>.empty(),
-          runOcr: () async => const OcrRunSummary(status: OcrRunStatus.completed),
-          cancelOcr: () {},
-          ocrProgress: const Stream<OcrRunProgress>.empty(),
-          mediaStats: () async =>
-              const MediaIndexStats(total: 0, byCategory: {}, volumeCount: 0),
-        );
+    : super(
+        mediaSync: const _NoSync(),
+        runDocuments: () async =>
+            const DocumentRunSummary(status: DocumentRunStatus.completed),
+        cancelDocuments: () {},
+        documentProgress: const Stream<DocumentRunProgress>.empty(),
+        runOcr: () async => const OcrRunSummary(status: OcrRunStatus.completed),
+        cancelOcr: () {},
+        ocrProgress: const Stream<OcrRunProgress>.empty(),
+        mediaStats: () async =>
+            const MediaIndexStats(total: 0, byCategory: {}, volumeCount: 0),
+      );
 
   @override
   Future<IndexingStatus> start() async => const IndexingStatus.idle();

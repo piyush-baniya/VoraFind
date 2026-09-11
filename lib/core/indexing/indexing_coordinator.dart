@@ -7,6 +7,8 @@ import '../documents/document_models.dart' show DocumentRunStatus;
 import '../ocr/ocr_coordinator.dart';
 import '../ocr/ocr_models.dart';
 import '../platform/content_access_models.dart';
+import '../semantic/semantic_index_coordinator.dart';
+import '../semantic/semantic_models.dart';
 
 /// High-level lifecycle of the whole indexing pipeline (docs
 /// `android-indexing-architecture.md` §Lifecycle, Prompt #10).
@@ -53,6 +55,8 @@ class IndexingStatus {
     this.contentTotal,
     this.documentsProcessed,
     this.documentsTotal,
+    this.semanticProcessed,
+    this.semanticTotal,
     this.message,
   });
 
@@ -74,6 +78,11 @@ class IndexingStatus {
   final int? documentsProcessed;
   final int? documentsTotal;
 
+  /// Semantic embedding progress (processed/total eligible rows). Null when
+  /// the semantic provider is unavailable.
+  final int? semanticProcessed;
+  final int? semanticTotal;
+
   /// Short, user-safe explanation for [IndexingPhase.failed] runs. Never
   /// contains stack traces or user content.
   final String? message;
@@ -92,7 +101,7 @@ abstract interface class IndexingMediaSync {
   Future<void> cancel();
 }
 
-/// Drives one full indexing run: media sync → documents → OCR.
+/// Drives one full indexing run: media sync → documents → OCR → semantic.
 ///
 /// Composes the existing coordinators behind a single [IndexingStatus] stream
 /// without replacing them (AGENTS.md §2/§29). A run:
@@ -100,11 +109,13 @@ abstract interface class IndexingMediaSync {
 /// 1. runs `IndexingMediaSync` over every media category,
 /// 2. drains the document extraction queue,
 /// 3. drains the OCR queue,
-/// 4. reports [IndexingPhase.completed] (or cancelled/failed).
+/// 4. drains the semantic embedding queue (if a provider is available),
+/// 5. reports [IndexingPhase.completed] (or cancelled/failed).
 ///
 /// Failure isolation: per-file failures never reach this coordinator — the
 /// sub-coordinators persist durable failed/unsupported rows instead. Only a
-/// stage-level failure (no access, DB error) fails the run.
+/// stage-level failure (no access, DB error) fails the run. A semantic-stage
+/// failure is non-fatal: metadata/OCR/document search continue working.
 ///
 /// Cancellation is cooperative at stage boundaries; work persisted before the
 /// request remains valid, and no checkpoint is written for incomplete units.
@@ -118,6 +129,8 @@ class IndexingCoordinator {
     required this.cancelOcr,
     required this.ocrProgress,
     required this.mediaStats,
+    this.runSemantic,
+    this.cancelSemantic,
   });
 
   static const List<ContentCategory> _mediaCategories = [
@@ -140,6 +153,12 @@ class IndexingCoordinator {
 
   /// Index snapshot taken after synchronization (real totals, never fake).
   final Future<MediaIndexStats> Function() mediaStats;
+
+  /// Semantic embedding stage entry points (wired to [SemanticIndexCoordinator]).
+  /// Optional: when null, the semantic stage is skipped entirely and the rest
+  /// of the pipeline is unaffected.
+  final Stream<SemanticRunProgress> Function()? runSemantic;
+  final void Function()? cancelSemantic;
 
   final StreamController<IndexingStatus> _status =
       StreamController<IndexingStatus>.broadcast();
@@ -221,10 +240,12 @@ class IndexingCoordinator {
     unawaited(mediaSync.cancel());
     cancelDocuments();
     cancelOcr();
+    cancelSemantic?.call();
   }
 
-  /// Drains document extraction, then OCR, reporting live counts. Returns
-  /// true when both stages concluded without cancellation.
+  /// Drains document extraction, then OCR, then semantic embedding, reporting
+  /// live counts. Returns true when all stages concluded without cancellation.
+  /// A semantic-stage failure is non-fatal: the run still completes.
   Future<bool> _enrich() async {
     _emit(_rebuild(phase: IndexingPhase.enriching));
 
@@ -263,7 +284,36 @@ class IndexingCoordinator {
     if (ocrSummary.status == OcrRunStatus.failed) {
       throw StateError('OCR stage failed');
     }
-    return !ocrCancelled;
+    if (ocrCancelled) return false;
+
+    // Semantic stage is optional and non-fatal: a failure here does not fail
+    // the run, and an unavailable provider simply skips the stage.
+    if (runSemantic != null) {
+      var semanticCancelled = false;
+      final semStream = runSemantic!();
+      final completer = Completer<SemanticRunStatus>();
+      final sub = semStream.listen((snapshot) {
+        _emit(
+          _rebuild(
+            semanticProcessed: snapshot.processed,
+            semanticTotal: snapshot.total,
+          ),
+        );
+        if (snapshot.status == SemanticRunStatus.cancelled ||
+            snapshot.status == SemanticRunStatus.completed ||
+            snapshot.status == SemanticRunStatus.failed ||
+            snapshot.status == SemanticRunStatus.unavailable) {
+          completer.complete(snapshot.status);
+        }
+      });
+      final terminalStatus = await completer.future;
+      await sub.cancel();
+      semanticCancelled = terminalStatus == SemanticRunStatus.cancelled;
+      if (semanticCancelled) return false;
+      // semantic failed/unavailable is intentionally non-fatal
+    }
+
+    return true;
   }
 
   /// Concludes a run on [phase] without wiping the progress counts the UI
@@ -285,6 +335,8 @@ class IndexingCoordinator {
     int? contentTotal,
     int? documentsProcessed,
     int? documentsTotal,
+    int? semanticProcessed,
+    int? semanticTotal,
   }) {
     final current = _last ?? const IndexingStatus.idle();
     return IndexingStatus(
@@ -295,6 +347,8 @@ class IndexingCoordinator {
       contentTotal: contentTotal ?? current.contentTotal,
       documentsProcessed: documentsProcessed ?? current.documentsProcessed,
       documentsTotal: documentsTotal ?? current.documentsTotal,
+      semanticProcessed: semanticProcessed ?? current.semanticProcessed,
+      semanticTotal: semanticTotal ?? current.semanticTotal,
       message: current.message,
     );
   }
