@@ -51,6 +51,25 @@ abstract final class SemanticDefaults {
   /// Float32 bytes. A future quantized encoding adds a new tag; rows written
   /// with an unknown tag are treated as stale and regenerated.
   static const String quantizationF32 = 'f32';
+
+  /// Model ID persisted alongside every vector. Changing it (a new model, a
+  /// new quantization, a new pooling method) makes every existing row stale
+  /// and re-embedded on the next run — the single invalidation lever for the
+  /// neural switch (docs `semantic-search.md` §Model invalidation).
+  static const String neuralModelId = 'minilm-l6-v2-int8-v1';
+
+  /// Bundled int8-quantized `all-MiniLM-L6-v2` ONNX graph (Apache-2.0).
+  /// Shipped in the APK (see `pubspec.yaml`); never downloaded at runtime.
+  static const String neuralModelAssetPath =
+      'assets/models/model_quantized.onnx';
+
+  /// WordPiece vocabulary for the bundled model.
+  static const String neuralVocabAssetPath = 'assets/models/vocab.txt';
+
+  /// Maximum tokens fed to the model (including `[CLS]`/`[SEP]`), matching
+  /// the model's 256-token position-embedding ceiling. Longer inputs are
+  /// truncated to the first 254 content tokens.
+  static const int neuralMaxTokens = 256;
 }
 
 /// Which indexed surface a semantic embedding represents.

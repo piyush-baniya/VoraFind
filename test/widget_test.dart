@@ -16,6 +16,8 @@ import 'package:vorafind/core/indexing/indexing_providers.dart';
 import 'package:vorafind/core/ocr/ocr_coordinator.dart';
 import 'package:vorafind/core/ocr/ocr_models.dart';
 import 'package:vorafind/core/platform/content_access_models.dart';
+import 'package:vorafind/core/semantic/embedding_provider.dart';
+import 'package:vorafind/core/semantic/semantic_providers.dart';
 
 void main() {
   Future<ProviderContainer> newContainer() async {
@@ -31,6 +33,14 @@ void main() {
         // pipeline itself is covered by
         // test/indexing/indexing_coordinator_test.dart.
         indexingCoordinatorProvider.overrideWith((ref) => _IdlePipeline()),
+        // The production embedding model loads long-running assets + native
+        // inference on a real event loop; the search stage awaits the query
+        // embedding, which would never resolve under FakeAsync. The
+        // deterministic provider resolves each embed via microtasks so the
+        // semantic path stays exercised without host/asset/native I/O.
+        embeddingProvider.overrideWithValue(
+          const DeterministicEmbeddingProvider(),
+        ),
       ],
     );
     addTearDown(container.dispose);

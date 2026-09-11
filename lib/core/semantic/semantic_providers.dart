@@ -3,24 +3,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/providers.dart' show databaseProvider;
 import 'drift_semantic_repository.dart';
 import 'embedding_provider.dart';
-import 'local_embedding_provider.dart';
+import 'neural_embedding_provider.dart';
 import 'semantic_index_coordinator.dart';
 import 'semantic_repository.dart';
 
-// The local embedding model/configuration. Prompt #12 ships a real on-device
-// embedding: the [LocalEmbeddingProvider], a char-n-gram count-sketch random
-// projection that requires zero model files and zero native runtime (docs
-// semantic-search.md, Selected model). It sits behind the same
-// [EmbeddingProvider] interface so a heavier neural model can replace it once
-// one is bundled and verified.
+// The embedding provider behind all semantic enrichment and retrieval. Prompt
+// #13 ships the real on-device model: the [NeuralEmbeddingProvider] runs the
+// bundled int8 `all-MiniLM-L6-v2` sentence transformer through ONNX Runtime,
+// fully offline (docs semantic-search.md, Selected model). It sits behind the
+// same [EmbeddingProvider] interface the deterministic providers implement, so
+// tests and future models swap in without touching the pipeline.
 //
-// Production uses [LocalEmbeddingProvider], which is a legitimate on-device
-// embedding — not a stub — providing genuine subword-overlap similarity with
-// bounded latency, no download, no APK impact, and full offline operation.
-// Deterministic across runs (fixed hash seed) and compatible with the rest of
-// the subsystem without re-tuning (docs semantic-search.md §Dimensions).
+// The provider is created lazily (no asset loading, no native initialization
+// at construction) and the model is loaded on the first embed; until then it
+// reports available, and a failed load flips it terminal.
 final embeddingProvider = Provider<EmbeddingProvider>(
-  (ref) => const LocalEmbeddingProvider(),
+  (ref) => NeuralEmbeddingProvider(),
 );
 
 // Indexing-side data access over semantic_embeddings. Single source of truth

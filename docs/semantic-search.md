@@ -1,8 +1,10 @@
 # Semantic Search
 
-Local, on-device semantic retrieval for VoraFind. This document covers the
-Prompt #11 foundation: an isolated, replaceable semantic subsystem that
-complements (never replaces) the existing keyword/OCR/document search.
+Local, on-device semantic retrieval for VoraFind. This document describes the
+current implementation: a real neural sentence-embedding model
+(`all-MiniLM-L6-v2`, int8) running fully offline through ONNX Runtime, behind
+the isolate-and-representable `EmbeddingProvider` interface that complements
+(never replaces) the existing keyword/OCR/document search.
 
 ## Non-goals
 
@@ -49,93 +51,146 @@ and the coordinators never touch ML types.
 
 ## Selected model
 
-**Production uses `LocalEmbeddingProvider`** — a local character n-gram count
-sketch (locality-sensitive random projection) with no model file, no ML
-runtime, and no network dependency. It produces 384-dim vectors where texts
-sharing subword character overlap land closer in cosine space, enabling
-immediate end-to-end semantic retrieval on every device.
+**Production uses `NeuralEmbeddingProvider`** — sentence-transformers
+`all-MiniLM-L6-v2` (Apache-2.0), int8-quantized, bundled inside the APK and
+executed with ONNX Runtime. Everything runs on-device; there is no model
+download and no network access at any point.
 
-### Why no transformer model yet
+### Model and assets
 
-Before adding a real on-device embedding model, candidates were evaluated
-against the following criteria:
+| Item                 | Value / notes                                          |
+|----------------------|--------------------------------------------------------|
+| Model                | `all-MiniLM-L6-v2` (SBERT, 384-dim sentence embeddings) |
+| Graph                | `assets/models/model_quantized.onnx` — 22.9 MB int8     |
+| Vocabulary           | `assets/models/vocab.txt` (30522 tokens)                |
+| Config provenance    | `config.json`, `tokenizer_config.json`, `tokenizer.json` (bundled, not referenced) |
+| License              | Apache-2.0 (Play-Store compatible)                      |
+| Model ID             | `minilm-l6-v2-int8-v1` (SemanticDefaults.neuralModelId) |
+| Quantization         | int8 weights; inputs/outputs remain int64/Float32       |
+| Dimensions           | 384 (unchanged from the deterministic provider)         |
 
-| Property        | Requirement                          |
-|-----------------|--------------------------------------|
-| Size            | < 50 MB total model footprint        |
-| RAM             | Within budget for mid-range Android   |
-| CPU             | Single-embedding latency < 100 ms     |
-| Dimensions      | Moderate (128–768)                    |
-| Quantization    | INT8/float16 preferred                |
-| License         | Play Store compatible                 |
-| Offline         | Required                              |
-| Flutter runtime | Maintained LiteRT/TFLite/ONNX bridge  |
+The assets are committed exceptions to the `assets/` gitignore rule
+(offline-first) and declared in `pubspec.yaml` `flutter.assets`.
 
-Evaluated candidates: LiteRT-compatible MiniLM-style models (~22 MB int8,
-~150 MB RAM at inference), ONNX Runtime Mobile embedding models (~12–18 MB
-quantized). None were selected for Prompt #12 because:
+### Why this model / runtime
 
-1. **No Android benchmark device** was available to validate CPU/RAM claims.
-2. **APK size budget** — adding a transformer model + native runtime would
-   exceed the project's incremental size discipline without measurement.
-3. **Privacy-first principle** — the deterministic provider proves the full
-   pipeline (indexing → storage → retrieval → hybrid ranking) without any
-   ML surface area.
+The provider contract and vector plumbing were validated through Prompt #11
+and #12 with a deterministic provider. Replacing it came down to a measured
+trade-off, closed here:
 
-The architecture lets a real model drop in behind `EmbeddingProvider` by
-replacing one provider — no search-layer or indexing-layer changes needed.
+* **Size** — 22.9 MB int8 meets the < 50 MB budget and is acceptable as a
+  one-time APK delta (see `docs/` measurements in the Prompt #13 report).
+* **Accuracy** — the real model demonstrates synonymy the deterministic
+  sketch cannot: "vehicle maintenance" ↔ "car repair receipts" scores ~0.63
+  cosine; unrelated text sits at ≤ 0.19 (baseline mean 0.047). The existing
+  `minSimilarity = 0.35` threshold is validated with wide margin on both
+  sides.
+* **Runtime** — `onnxruntime` (pub package ^1.4.1) ships `libonnxruntime.so`
+  jniLibs for arm64-v8a and armeabi-v7a and a Windows DLL for host tests.
+* **Offline** — the graph is a file asset; nothing is fetched at runtime.
 
 ### Provider internals
 
-| Property      | Value                                           |
-|---------------|-------------------------------------------------|
-| Model ID      | `local-ngram-rp-384`                            |
-| Dimensions    | 384                                             |
-| Tokenizer     | Unicode-aware (`[\p{L}\p{N}]+`)                 |
-| Pooling       | Char n-gram count sketch (4-gram + 3-gram)      |
-| Hashing       | FNV-1a-inspired signed 32-bit hash per n-gram   |
-| Normalization | L2                                              |
-| Quantization  | f32 (Float32LE blob)                            |
-| Storage       | Bounded input: 4000 chars max                   |
+| Property      | Value                                          |
+|---------------|------------------------------------------------|
+| Model ID      | `minilm-l6-v2-int8-v1`                         |
+| Dimensions    | 384                                            |
+| Tokenizer     | Ported HuggingFace BERT (slow) WordPiece       |
+| Max tokens    | 256 (incl. `[CLS]`/`[SEP]`), truncation-aware  |
+| Pooling       | Mean tokens over attention mask                |
+| Normalization | L2                                            |
+| Quantization  | int8 weights / f32 vectors (`f32` tag)         |
+| Runtime       | ONNX Runtime CPU, intra-op 2 threads, graph-opt ALL |
+| Concurrency   | One worker isolate per embedding (session is concurrency-safe) |
 
-`DeterministicEmbeddingProvider` (whole-token bag-of-words, model ID
-`deterministic-384`) is retained as a reference implementation and test
-fixture — never wired into production.
+`DeterministicEmbeddingProvider` (model id `deterministic-384`) and
+`LocalEmbeddingProvider` (`local-ngram-rp-384`) are retained as test
+fixtures / reference implementations — never wired into production.
 
-### Model lifecycle
+## Runtime (FFI)
 
-The provider is stateless — `embed` builds a bounded, deterministic projection
-of the input text. No model file is loaded or unloaded. `dispose()` is a
-no-op. Multiple concurrent calls are safe.
+`NeuralEmbeddingProvider` talks to ORT through `NeuralEmbeddingRuntime`
+(`lib/core/semantic/neural_embedding_runtime.dart`):
+
+* The native library is opened **lazily**, at first session creation, and only
+  the generated `dart:ffi` bindings are imported — never the package-level
+  `onnxruntime.dart` facade, which calls `DynamicLibrary.open` at import time
+  and would crash any process (or test) without the DLL. This is marked with
+  `// ignore: implementation_imports` and must not be "cleaned up".
+* Library resolution: Android → `libonnxruntime.so` (plugin jniLibs); Windows
+  host tests → the DLL inside the pub package (resolved via
+  `.dart_tool/package_config.json`, never a hard-coded path).
+* Every `OrtStatus` is checked and rolled into `OnnxRuntimeException`
+  (message + failing operation), matching upstream ownership rules:
+  `OrtValue`s via `ReleaseValue`, ORT-name strings via `AllocatorFree`, and
+  `OrtMemoryInfo` intentionally left owned by the env.
+* **Isolate policy**: a worker isolate per `embed` reopens the DLL,
+  re-negotiates the API pointer, and reuses the main-isolate session pointer
+  by address (spawned isolates cannot capture `ffi.Pointer`/`DynamicLibrary`).
+  This keeps indexing batches off the UI thread and is safe because ORT
+  sessions allow concurrent `Run` calls.
+* Session teardown (`dispose`) releases the session and env; re-affinity on
+  a new run is handled by the provider re-loading on the next embed.
+
+## Tokenizer
+
+`BertTokenizer` (`lib/core/semantic/bert_tokenizer.dart`) is a faithful port
+of the HuggingFace **slow** BERT tokenizer for the bundled vocab, executed in
+exact upstream order:
+
+1. `_clean_text` (drop control chars + U+FFFD; normalize whitespace)
+2. `_tokenize_chinese_chars` (space-surround CJK, one piece per char)
+3. lowercase + accent stripping (`diacritic` package)
+4. punctuation splitting
+5. longest-match WordPiece with `##` continuation (default `max_input_chars`
+   = 100, unseen → `[UNK]=100`)
+6. truncation to 256 tokens and wrap in `[CLS] … [SEP]` (attention mask all
+   ones; segment ids all zeros — inputs are never padded at inference)
+
+The slow implementation was chosen over a port of `tokenizers`' fast one
+because token-to-vocabulary relationships are unambiguous, and both the slow
+and fast paths agree on every edge case that matters here (U+FFFD is dropped
+by both; Deseret → `[UNK]`; CJK punctuation splits).
+
+**Compatibility provenance.** `test/semantic/bert_tokenizer_test.dart` pins
+byte-for-byte parity with the Python reference (`transformers` + `tokenizers`
+dumps, recorded in `%LOCALAPPDATA%\Temp\opencode\ref_tokens.json`). If the
+model is ever swapped, regenerate those fixtures (Python `tokenizers` with
+`no_padding()/no_truncation()`) and update the test together with
+`SemanticDefaults.neuralModelId`.
+
+## Pooling
+
+Sentence-transformers `all-MiniLM-L6-v2` embeds a sentence by
+*(1)* Transformer → `last_hidden_state`, *(2)* mean-pooling over the
+attention mask (`1_Pooling/config.json`: `pooling_mode_mean_tokens: true`),
+*(3)* L2 normalization (`2_Normalize`). The worker does exactly this in Dart
+over the raw `last_hidden_state` floats, so stored vectors are byte-compatible
+with what the reference model computes.
+
+## Model invalidation
+
+Every stored row carries `model_id`. `SemanticDefaults.neuralModelId` is the
+single invalidation lever: changing the model, quantization, pooling, or
+tokenizer bumps it, making all prior rows stale and re-embedded on the next
+run. Consumers (coordinator, `SearchService`) filter strictly by
+`model_id`, so mixed generations never mix in one retrieval.
 
 ## Performance
 
-### Embedding generation (indexing)
+Measured on the development host (Windows x64, `flutter test`, release-mode
+binaries not enabled) — real numbers, single-user scale:
 
-| Operation      | Latency (deterministic provider) | Notes                                  |
-|----------------|-----------------------------------|----------------------------------------|
-| Single embed   | ~1-5 ms (Dart-only)               | Stateless, no native overhead          |
-| Batch (8 rows) | ~8-20 ms                          | No concurrency, single isolate         |
+| Operation                              | Result                     |
+|----------------------------------------|----------------------------|
+| Model + session load (first embed)     | ~193 ms (one-time)         |
+| Single embed, median / mean / p95      | 3.2 / 3.4 / 4.5 ms         |
+| Batch of 8 embeds (`embedBatch`)       | ~9 ms                      |
+| 256-token (max) truncated input        | ~24 ms                     |
 
-When a real model is integrated, these move to native inference. The provider
-contract (`embedBatch`) allows batch inference to be added without changing
-the coordinator or search layers.
-
-### Query embedding (search)
-
-One query embedding is generated per search request (never per candidate).
-For the deterministic provider this is ~1-5 ms.
-
-### Semantic candidate retrieval
-
-Bounded brute-force behind `SemanticSearchRepository.retrieveSemanticCandidates`:
-
-1. SQL fetch: `WHERE status='completed' AND model_id=? AND dimensions=? ... LIMIT N*2`
-2. Decode only the fetched vectors in Dart
-3. Cosine similarity against the query vector
-4. Top-N by similarity (deterministic tie-break: stableKey ascending)
-
-Default pool ceiling: 200 vectors. Never loads all vectors.
+A phone (arm64) will differ; Android-level validation is pending a physical
+device and is explicitly on the future-work list. The UI thread is never
+blocked — inference runs in worker isolates; `embed` results are awaited.
 
 ## Storage
 
@@ -145,9 +200,9 @@ Default pool ceiling: 200 vectors. Never loads all vectors.
 | 10,000 items       | ~15 MB                        |
 | 50,000 items       | ~75 MB                        |
 
-INT8 quantization is deferred — Float32 is acceptable given dimensions and
-the bounded pool size. Future migration adds an `INT8` quantization tag; rows
-with unknown tags are treated as stale.
+INT8 vector quantization is deferred — Float32 is acceptable given dimensions
+and the bounded retrieval pool. A future migration adds an `INT8`
+quantization tag; rows carrying unknown tags are handled as stale.
 
 ## Hybrid ranking
 
@@ -175,20 +230,22 @@ SearchRanker: keyword_score + min(semantic_score_weighted, cap)
 
 ## Limitations
 
-* The local provider captures subword character overlap, not true semantic
-  meaning. A query like "automobile" will not retrieve a document containing
-  only "car". A real transformer-based embedding (e.g. MiniLM) would capture
-  synonymy and paraphrase — deferred to a future prompt.
-* Real transformer-based embeddings are deferred to a future prompt once a
-  validated Android device and model are available.
-* No ANN index yet — bounded brute-force is adequate for the current vector
-  count and deferred otherwise.
+* ANN-only retrieval is not implemented — bounded brute-force over a capped
+  candidate pool (`maxCandidatePool` = 200) remains adequate and keeps memory
+  predictable as the library grows.
+* Real-device (Android) CPU/RAM/battery numbers are not yet measured; host
+  benchmarks above are the current evidence.
+* The first embedding after app start pays the ~190 ms model-load cost;
+  production startup should warm the session during indexing rather than on
+  the first keystroke (future work).
 
 ## Future work
 
-* Replace `LocalEmbeddingProvider` with a LiteRT/ONNX sentence embedding
-  model (same interface, one file change).
-* Add INT8 quantization to halve vector storage.
+* Validate Android CPU, RAM, and battery on a physical device and tune
+  `intraOpNumThreads` / batching accordingly.
+* Warm the session at app startup / index time to move model load off the
+  critical search path.
+* Add model-level graceful fallback to deterministic semantics on runtime
+  failure (already mapped to per-row durable failure today).
 * Replace bounded brute-force with a native ANN index if vector counts
   exceed the bounded pool's effectiveness.
-* Add model warmup and inference benchmarks on a physical device.

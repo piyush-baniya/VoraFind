@@ -66,10 +66,12 @@ class EmbeddingException implements Exception {
   String toString() => 'EmbeddingException(${code.name})';
 }
 
-/// Production wiring for this prompt: no local model is shipped yet, so the
-/// subsystem is honestly unavailable and does no work. A real LiteRT/ONNX
-/// provider replaces this class behind the same interface (docs
-/// `semantic-search.md` §Selected model).
+/// Production wiring lives in `semantic_providers.dart` and is the
+/// [NeuralEmbeddingProvider] (Prompt #13). This provider is retained as an
+/// honest "nothing to run" fallback for tests and for platforms where the
+/// native runtime cannot load; the subsystem reports unavailable and the
+/// enrichment coordinator does no work (docs `semantic-search.md` §Selected
+/// model).
 class UnavailableEmbeddingProvider implements EmbeddingProvider {
   const UnavailableEmbeddingProvider();
 
