@@ -3,6 +3,7 @@ import 'dart:async';
 import 'embedding_provider.dart';
 import 'semantic_models.dart';
 import 'semantic_repository.dart';
+import 'vector_math.dart';
 
 /// Drives the semantic enrichment stage: turns indexed media rows and
 /// documents into bounded, resumable, cancellable embedding batches.
@@ -135,6 +136,24 @@ class SemanticIndexCoordinator {
 
     try {
       final vector = await _provider.embed(input);
+      // Validate the embedding: correct dimensions, all finite, non-zero norm.
+      // A deterministic provider can return a zero vector for empty/stopword-
+      // only input; persist as unsupported rather than storing an unusable row
+      // that would silently produce null similarity at search time.
+      if (vector.length != _provider.dimensions ||
+          vector.any((v) => v.isNaN || v.isInfinite) ||
+          VectorMath.normalized(vector) == null) {
+        await _repository.saveFailure(
+          stableKey: candidate.stableKey,
+          contentType: candidate.contentType,
+          sourceRevision: candidate.sourceRevision,
+          modelId: _provider.modelId,
+          errorCode: EmbeddingErrorCode.invalidOutput.name,
+          nowEpochSeconds: _now(),
+          permanent: true,
+        );
+        return;
+      }
       await _repository.saveEmbedding(
         stableKey: candidate.stableKey,
         contentType: candidate.contentType,

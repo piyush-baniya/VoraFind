@@ -10,7 +10,7 @@ void main() {
     });
 
     test('reports model identity', () {
-      expect(provider.modelId, 'deterministic-test-8');
+      expect(provider.modelId, 'deterministic-8');
       expect(provider.dimensions, 8);
       expect(provider.isAvailable, isTrue);
     });

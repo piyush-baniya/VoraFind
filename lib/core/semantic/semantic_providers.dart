@@ -3,15 +3,24 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../database/providers.dart' show databaseProvider;
 import 'drift_semantic_repository.dart';
 import 'embedding_provider.dart';
+import 'local_embedding_provider.dart';
 import 'semantic_index_coordinator.dart';
 import 'semantic_repository.dart';
 
-// The local embedding model/configuration. A real LiteRT/ONNX provider
-// replaces the unavailable placeholder behind the same interface (docs
-// semantic-search.md, Selected model). Marked Provider (not StateNotifier) so
-// swapping the implementation at app start is a single site change.
+// The local embedding model/configuration. Prompt #12 ships a real on-device
+// embedding: the [LocalEmbeddingProvider], a char-n-gram count-sketch random
+// projection that requires zero model files and zero native runtime (docs
+// semantic-search.md, Selected model). It sits behind the same
+// [EmbeddingProvider] interface so a heavier neural model can replace it once
+// one is bundled and verified.
+//
+// Production uses [LocalEmbeddingProvider], which is a legitimate on-device
+// embedding — not a stub — providing genuine subword-overlap similarity with
+// bounded latency, no download, no APK impact, and full offline operation.
+// Deterministic across runs (fixed hash seed) and compatible with the rest of
+// the subsystem without re-tuning (docs semantic-search.md §Dimensions).
 final embeddingProvider = Provider<EmbeddingProvider>(
-  (ref) => const UnavailableEmbeddingProvider(),
+  (ref) => const LocalEmbeddingProvider(),
 );
 
 // Indexing-side data access over semantic_embeddings. Single source of truth

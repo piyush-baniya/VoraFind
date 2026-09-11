@@ -118,7 +118,7 @@ class DeterministicEmbeddingProvider implements EmbeddingProvider {
   final int dimensions;
 
   @override
-  String get modelId => 'deterministic-test-$dimensions';
+  String get modelId => 'deterministic-$dimensions';
 
   @override
   bool get isAvailable => true;

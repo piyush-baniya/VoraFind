@@ -6,6 +6,13 @@ import '../search/search_normalizer.dart';
 /// (`docs/semantic-search.md`). Every value exists to keep embedding
 /// generation and retrieval bounded on real phones.
 abstract final class SemanticDefaults {
+  /// Dimensionality of every embedding vector. Fixed at 384: enough signal
+  /// for subword-overlap retrieval, small enough to keep the floating-point
+  /// dot-product search path bounded (docs `semantic-search.md` §Vector
+  /// storage). A different model hangs a different dimension off this
+  /// constant; the rest of VoraFind reads it rather than assuming a value.
+  static const int dimensions = 384;
+
   /// Rows embedded per coordinator batch; each batch is persisted before the
   /// next starts (AGENTS.md §12 — bounded memory, resumable).
   static const int batchSize = 8;

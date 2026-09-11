@@ -662,7 +662,9 @@ class _SearchResultTile extends StatelessWidget {
       byField.putIfAbsent(match.field, () => []).add(match.token);
     }
     final segments = byField.entries.map((entry) {
-      final tokens = entry.value.toSet().toList()..sort();
+      final tokens = entry.value.toSet().where((t) => t.isNotEmpty).toList()
+        ..sort();
+      if (tokens.isEmpty) return _fieldLabel(entry.key);
       return '${_fieldLabel(entry.key)}: ${tokens.join(', ')}';
     });
     return 'Matched in ${segments.join(' · ')}';
