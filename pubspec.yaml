@@ -61,13 +61,15 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
-  # Bundled on-device semantic model (int8 quantized all-MiniLM-L6-v2) and its
-  # WordPiece vocabulary. Shipped inside the APK so semantic search stays fully
-  # offline; there is no model download at runtime. See
-  # docs/semantic-search.md.
+  # Bundled on-device models (fully offline, never downloaded at runtime).
+  # Semantic: int8 all-MiniLM-L6-v2 + WordPiece vocabulary (semantic-search).
+  # Visual: int8 MobileNetV2 + ImageNet labels for video frame classification
+  # (video-visual-search).
   assets:
     - assets/models/model_quantized.onnx
     - assets/models/vocab.txt
+    - assets/models/mobilenetv2_int8.onnx
+    - assets/models/synset.txt
 
   # To add assets to your application, add an assets section, like this:
   # assets:

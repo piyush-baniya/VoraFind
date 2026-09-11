@@ -5,6 +5,9 @@ import '../platform/content_access_models.dart' show ContentCategory;
 import '../semantic/embedding_provider.dart';
 import '../semantic/semantic_models.dart';
 import '../semantic/semantic_repository.dart';
+import '../visual/visual_models.dart' show VisualConceptMap;
+import '../visual/visual_repository.dart'
+    show VisualRetrievalMatch, VisualSearchRepository;
 import 'search_error.dart';
 import 'search_interpreter.dart';
 import 'search_normalizer.dart';
@@ -31,6 +34,7 @@ class SearchService {
     this.documentRepository,
     this.semanticSearchRepository,
     this.embeddingProvider,
+    this.visualSearchRepository,
     this.nowSeconds,
   });
 
@@ -44,6 +48,11 @@ class SearchService {
   /// Embedding model used to turn the query into a vector. When null, no
   /// query embedding is generated and semantic retrieval is skipped.
   final EmbeddingProvider? embeddingProvider;
+
+  /// Search-side visual concept retrieval. When null, search degrades to
+  /// keyword/OCR/document/semantic matching — never an error. Visual retrieval
+  /// never opens videos or runs inference; it only reads indexed frame rows.
+  final VisualSearchRepository? visualSearchRepository;
 
   /// Injectable clock (epoch seconds) used to resolve time words like
   /// "recent"/"this month" deterministically. Null → time words stay keywords.
@@ -144,13 +153,17 @@ class SearchService {
       final semanticFuture = runSemantic
           ? _semanticCandidates(prepared, semRepo, embed)
           : Future.value(const <SemanticMatch>[]);
+      final visualFuture = pinnedDocumentTypes
+          ? Future.value(const <VisualRetrievalMatch>[])
+          : _visualCandidates(prepared);
 
-      final (media, ocr, docMeta, docContent, semantic) = await (
+      final (media, ocr, docMeta, docContent, semantic, visual) = await (
         mediaFuture,
         ocrFuture,
         docMetaFuture,
         docContentFuture,
         semanticFuture,
+        visualFuture,
       ).wait;
 
       final merged = _merge(
@@ -159,6 +172,7 @@ class SearchService {
         docMetadata: docMeta,
         docContent: docContent,
         semantic: semantic,
+        visual: visual,
       );
       return await _resolveSemanticOnly(merged, repository, docRepo);
     } catch (_) {
@@ -209,6 +223,9 @@ class SearchService {
         document: doc,
         semanticKey: key,
         semanticSimilarity: candidates[i].semanticSimilarity,
+        visualConcept: candidates[i].visualConcept,
+        visualConfidence: candidates[i].visualConfidence,
+        visualFrameTsMs: candidates[i].visualFrameTsMs,
       );
     }
     return candidates;
@@ -232,6 +249,7 @@ class SearchService {
     required List<DocumentSearchMatch> docMetadata,
     required List<DocumentSearchMatch> docContent,
     required List<SemanticMatch> semantic,
+    required List<VisualRetrievalMatch> visual,
   }) {
     final byKey = <String, SearchCandidate>{};
     final order = <String>[];
@@ -245,6 +263,12 @@ class SearchService {
       byKey[key] = SearchCandidate(
         item: existing?.item ?? match.item,
         ocrText: match.normalizedText,
+        documentText: existing?.documentText,
+        semanticKey: existing?.semanticKey,
+        semanticSimilarity: existing?.semanticSimilarity,
+        visualConcept: existing?.visualConcept,
+        visualConfidence: existing?.visualConfidence,
+        visualFrameTsMs: existing?.visualFrameTsMs,
       );
       if (existing == null) order.add(key);
     }
@@ -266,6 +290,11 @@ class SearchService {
       byKey[key] = SearchCandidate(
         document: existing?.document ?? match.document,
         documentText: match.normalizedText ?? existing?.documentText,
+        semanticKey: existing?.semanticKey,
+        semanticSimilarity: existing?.semanticSimilarity,
+        visualConcept: existing?.visualConcept,
+        visualConfidence: existing?.visualConfidence,
+        visualFrameTsMs: existing?.visualFrameTsMs,
       );
       if (existing == null) order.add(key);
     }
@@ -286,6 +315,46 @@ class SearchService {
           documentText: existing.documentText,
           semanticKey: key,
           semanticSimilarity: match.similarity,
+          visualConcept: existing.visualConcept,
+          visualConfidence: existing.visualConfidence,
+          visualFrameTsMs: existing.visualFrameTsMs,
+        );
+      }
+    }
+    // Visual retrieval returns at most one row per (video, concept) pair,
+    // already collapsed to the best frame in SQL. Grouping here keeps one
+    // candidate per video: the highest-confidence concept wins and its frame
+    // timestamp travels with it (never lost during merging).
+    final bestVisual = <String, VisualRetrievalMatch>{};
+    for (final match in visual) {
+      final existing = bestVisual[match.stableKey];
+      if (existing == null || match.confidence > existing.confidence) {
+        bestVisual[match.stableKey] = match;
+      }
+    }
+    for (final entry in bestVisual.entries) {
+      final key = entry.key;
+      final match = entry.value;
+      final existing = byKey[key];
+      if (existing == null) {
+        byKey[key] = SearchCandidate(
+          semanticKey: key,
+          visualConcept: match.concept,
+          visualConfidence: match.confidence,
+          visualFrameTsMs: match.frameTsMs,
+        );
+        order.add(key);
+      } else if (existing.visualConcept == null) {
+        byKey[key] = SearchCandidate(
+          item: existing.item,
+          document: existing.document,
+          ocrText: existing.ocrText,
+          documentText: existing.documentText,
+          semanticKey: existing.semanticKey ?? key,
+          semanticSimilarity: existing.semanticSimilarity,
+          visualConcept: match.concept,
+          visualConfidence: match.confidence,
+          visualFrameTsMs: match.frameTsMs,
         );
       }
     }
@@ -328,6 +397,38 @@ class SearchService {
       );
     } catch (_) {
       return const <SemanticMatch>[];
+    }
+  }
+
+  /// Maps query tokens to visual concepts and retrieves video candidates from
+  /// the frame store. Never throws on visual failure — returns an empty list
+  /// so other results still surface. Skipped for document-pinned and
+  /// screenshot-only queries (visual frames are video-only).
+  Future<List<VisualRetrievalMatch>> _visualCandidates(
+    NormalizedSearchQuery prepared,
+  ) async {
+    final repo = visualSearchRepository;
+    if (repo == null || !prepared.hasKeyword) {
+      return const <VisualRetrievalMatch>[];
+    }
+    if (prepared.isScreenshot == true) return const <VisualRetrievalMatch>[];
+    if (prepared.documentTypes.isNotEmpty) {
+      return const <VisualRetrievalMatch>[];
+    }
+    final concepts = VisualConceptMap.conceptsForTokens(prepared.tokens);
+    if (concepts.isEmpty) return const <VisualRetrievalMatch>[];
+    try {
+      return await repo.retrieveVisualCandidates(
+        concepts: concepts.toList(growable: false),
+        maxResults: prepared.limit,
+        mediaCategories: prepared.categories.map((c) => c.name).toList(),
+        dateFrom: prepared.dateFrom,
+        dateTo: prepared.dateTo,
+        minDurationMs: prepared.minDurationMs,
+        maxDurationMs: prepared.maxDurationMs,
+      );
+    } catch (_) {
+      return const <VisualRetrievalMatch>[];
     }
   }
 

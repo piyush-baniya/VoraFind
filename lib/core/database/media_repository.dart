@@ -410,6 +410,15 @@ class DriftMediaRepository implements MediaRepository {
     await (_db.delete(
       _db.ocrContent,
     )..where((row) => row.mediaStableKey.equals(stableKey))).go();
+    await (_db.delete(
+      _db.semanticEmbeddings,
+    )..where((row) => row.stableKey.equals(stableKey))).go();
+    await (_db.delete(
+      _db.videoVisualStatus,
+    )..where((row) => row.stableKey.equals(stableKey))).go();
+    await (_db.delete(
+      _db.videoVisualFrames,
+    )..where((row) => row.stableKey.equals(stableKey))).go();
     final deleted = await (_db.delete(
       _db.mediaItems,
     )..where((row) => row.stableKey.equals(stableKey))).go();
@@ -427,6 +436,15 @@ class DriftMediaRepository implements MediaRepository {
       await (_db.delete(
         _db.ocrContent,
       )..where((row) => row.mediaStableKey.isIn(chunk))).go();
+      await (_db.delete(
+        _db.semanticEmbeddings,
+      )..where((row) => row.stableKey.isIn(chunk))).go();
+      await (_db.delete(
+        _db.videoVisualStatus,
+      )..where((row) => row.stableKey.isIn(chunk))).go();
+      await (_db.delete(
+        _db.videoVisualFrames,
+      )..where((row) => row.stableKey.isIn(chunk))).go();
       await (_db.delete(
         _db.mediaItems,
       )..where((row) => row.stableKey.isIn(chunk))).go();

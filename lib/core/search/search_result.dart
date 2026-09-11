@@ -25,6 +25,8 @@ class SearchResult {
     required this.isScreenshot,
     required this.score,
     required this.matches,
+    this.visualConcept,
+    this.visualFrameTsMs,
   });
 
   final String stableKey;
@@ -49,6 +51,14 @@ class SearchResult {
 
   /// Why this row matched. Empty for filter-only results.
   final List<MatchInfo> matches;
+
+  /// Best visual concept for a video result (classification label only, never
+  /// object localization). Null for non-visual results.
+  final String? visualConcept;
+
+  /// Timestamp (ms) of the best matching frame inside the video. Null unless
+  /// [visualConcept] is set.
+  final int? visualFrameTsMs;
 }
 
 /// Settled value of a search attempt: the ranked results, or an empty set for

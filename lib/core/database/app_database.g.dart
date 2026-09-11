@@ -5533,6 +5533,879 @@ class SemanticEmbeddingsCompanion extends UpdateCompanion<SemanticEmbedding> {
   }
 }
 
+class $VideoVisualStatusTable extends VideoVisualStatus
+    with TableInfo<$VideoVisualStatusTable, VideoVisualStatusData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VideoVisualStatusTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _stableKeyMeta = const VerificationMeta(
+    'stableKey',
+  );
+  @override
+  late final GeneratedColumn<String> stableKey = GeneratedColumn<String>(
+    'stable_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceRevisionMeta = const VerificationMeta(
+    'sourceRevision',
+  );
+  @override
+  late final GeneratedColumn<int> sourceRevision = GeneratedColumn<int>(
+    'source_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelIdMeta = const VerificationMeta(
+    'modelId',
+  );
+  @override
+  late final GeneratedColumn<String> modelId = GeneratedColumn<String>(
+    'model_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _errorCodeMeta = const VerificationMeta(
+    'errorCode',
+  );
+  @override
+  late final GeneratedColumn<String> errorCode = GeneratedColumn<String>(
+    'error_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    stableKey,
+    sourceRevision,
+    modelId,
+    status,
+    errorCode,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'video_visual_status';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VideoVisualStatusData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('stable_key')) {
+      context.handle(
+        _stableKeyMeta,
+        stableKey.isAcceptableOrUnknown(data['stable_key']!, _stableKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stableKeyMeta);
+    }
+    if (data.containsKey('source_revision')) {
+      context.handle(
+        _sourceRevisionMeta,
+        sourceRevision.isAcceptableOrUnknown(
+          data['source_revision']!,
+          _sourceRevisionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceRevisionMeta);
+    }
+    if (data.containsKey('model_id')) {
+      context.handle(
+        _modelIdMeta,
+        modelId.isAcceptableOrUnknown(data['model_id']!, _modelIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelIdMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('error_code')) {
+      context.handle(
+        _errorCodeMeta,
+        errorCode.isAcceptableOrUnknown(data['error_code']!, _errorCodeMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {stableKey};
+  @override
+  VideoVisualStatusData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VideoVisualStatusData(
+      stableKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stable_key'],
+      )!,
+      sourceRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_revision'],
+      )!,
+      modelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_id'],
+      )!,
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      errorCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_code'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $VideoVisualStatusTable createAlias(String alias) {
+    return $VideoVisualStatusTable(attachedDatabase, alias);
+  }
+}
+
+class VideoVisualStatusData extends DataClass
+    implements Insertable<VideoVisualStatusData> {
+  /// Stable identity of the source media row (`media_items.stable_key`).
+  final String stableKey;
+
+  /// `media_items.metadata_revision` at analysis time. A revision bump makes
+  /// the analysis stale.
+  final int sourceRevision;
+
+  /// The vision model that produced the frame rows
+  /// (`VisualFrameClassifier.modelId`). A model change invalidates them.
+  final String modelId;
+
+  /// Durable analysis status ([VisualVideoStatus.name]).
+  final String status;
+
+  /// Stable failure code (`VisualErrorCode.name`); null when not failed.
+  final String? errorCode;
+
+  /// Epoch seconds of the first write.
+  final int createdAt;
+
+  /// Epoch seconds of the most recent write (drives retry cooldowns).
+  final int updatedAt;
+  const VideoVisualStatusData({
+    required this.stableKey,
+    required this.sourceRevision,
+    required this.modelId,
+    required this.status,
+    this.errorCode,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['stable_key'] = Variable<String>(stableKey);
+    map['source_revision'] = Variable<int>(sourceRevision);
+    map['model_id'] = Variable<String>(modelId);
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || errorCode != null) {
+      map['error_code'] = Variable<String>(errorCode);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  VideoVisualStatusCompanion toCompanion(bool nullToAbsent) {
+    return VideoVisualStatusCompanion(
+      stableKey: Value(stableKey),
+      sourceRevision: Value(sourceRevision),
+      modelId: Value(modelId),
+      status: Value(status),
+      errorCode: errorCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorCode),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory VideoVisualStatusData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VideoVisualStatusData(
+      stableKey: serializer.fromJson<String>(json['stableKey']),
+      sourceRevision: serializer.fromJson<int>(json['sourceRevision']),
+      modelId: serializer.fromJson<String>(json['modelId']),
+      status: serializer.fromJson<String>(json['status']),
+      errorCode: serializer.fromJson<String?>(json['errorCode']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'stableKey': serializer.toJson<String>(stableKey),
+      'sourceRevision': serializer.toJson<int>(sourceRevision),
+      'modelId': serializer.toJson<String>(modelId),
+      'status': serializer.toJson<String>(status),
+      'errorCode': serializer.toJson<String?>(errorCode),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  VideoVisualStatusData copyWith({
+    String? stableKey,
+    int? sourceRevision,
+    String? modelId,
+    String? status,
+    Value<String?> errorCode = const Value.absent(),
+    int? createdAt,
+    int? updatedAt,
+  }) => VideoVisualStatusData(
+    stableKey: stableKey ?? this.stableKey,
+    sourceRevision: sourceRevision ?? this.sourceRevision,
+    modelId: modelId ?? this.modelId,
+    status: status ?? this.status,
+    errorCode: errorCode.present ? errorCode.value : this.errorCode,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  VideoVisualStatusData copyWithCompanion(VideoVisualStatusCompanion data) {
+    return VideoVisualStatusData(
+      stableKey: data.stableKey.present ? data.stableKey.value : this.stableKey,
+      sourceRevision: data.sourceRevision.present
+          ? data.sourceRevision.value
+          : this.sourceRevision,
+      modelId: data.modelId.present ? data.modelId.value : this.modelId,
+      status: data.status.present ? data.status.value : this.status,
+      errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VideoVisualStatusData(')
+          ..write('stableKey: $stableKey, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('modelId: $modelId, ')
+          ..write('status: $status, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    stableKey,
+    sourceRevision,
+    modelId,
+    status,
+    errorCode,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VideoVisualStatusData &&
+          other.stableKey == this.stableKey &&
+          other.sourceRevision == this.sourceRevision &&
+          other.modelId == this.modelId &&
+          other.status == this.status &&
+          other.errorCode == this.errorCode &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class VideoVisualStatusCompanion
+    extends UpdateCompanion<VideoVisualStatusData> {
+  final Value<String> stableKey;
+  final Value<int> sourceRevision;
+  final Value<String> modelId;
+  final Value<String> status;
+  final Value<String?> errorCode;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const VideoVisualStatusCompanion({
+    this.stableKey = const Value.absent(),
+    this.sourceRevision = const Value.absent(),
+    this.modelId = const Value.absent(),
+    this.status = const Value.absent(),
+    this.errorCode = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VideoVisualStatusCompanion.insert({
+    required String stableKey,
+    required int sourceRevision,
+    required String modelId,
+    required String status,
+    this.errorCode = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : stableKey = Value(stableKey),
+       sourceRevision = Value(sourceRevision),
+       modelId = Value(modelId),
+       status = Value(status),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<VideoVisualStatusData> custom({
+    Expression<String>? stableKey,
+    Expression<int>? sourceRevision,
+    Expression<String>? modelId,
+    Expression<String>? status,
+    Expression<String>? errorCode,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (stableKey != null) 'stable_key': stableKey,
+      if (sourceRevision != null) 'source_revision': sourceRevision,
+      if (modelId != null) 'model_id': modelId,
+      if (status != null) 'status': status,
+      if (errorCode != null) 'error_code': errorCode,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VideoVisualStatusCompanion copyWith({
+    Value<String>? stableKey,
+    Value<int>? sourceRevision,
+    Value<String>? modelId,
+    Value<String>? status,
+    Value<String?>? errorCode,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return VideoVisualStatusCompanion(
+      stableKey: stableKey ?? this.stableKey,
+      sourceRevision: sourceRevision ?? this.sourceRevision,
+      modelId: modelId ?? this.modelId,
+      status: status ?? this.status,
+      errorCode: errorCode ?? this.errorCode,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (stableKey.present) {
+      map['stable_key'] = Variable<String>(stableKey.value);
+    }
+    if (sourceRevision.present) {
+      map['source_revision'] = Variable<int>(sourceRevision.value);
+    }
+    if (modelId.present) {
+      map['model_id'] = Variable<String>(modelId.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (errorCode.present) {
+      map['error_code'] = Variable<String>(errorCode.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VideoVisualStatusCompanion(')
+          ..write('stableKey: $stableKey, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('modelId: $modelId, ')
+          ..write('status: $status, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $VideoVisualFramesTable extends VideoVisualFrames
+    with TableInfo<$VideoVisualFramesTable, VideoVisualFrame> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $VideoVisualFramesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _stableKeyMeta = const VerificationMeta(
+    'stableKey',
+  );
+  @override
+  late final GeneratedColumn<String> stableKey = GeneratedColumn<String>(
+    'stable_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _frameIndexMeta = const VerificationMeta(
+    'frameIndex',
+  );
+  @override
+  late final GeneratedColumn<int> frameIndex = GeneratedColumn<int>(
+    'frame_index',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _frameTsMsMeta = const VerificationMeta(
+    'frameTsMs',
+  );
+  @override
+  late final GeneratedColumn<int> frameTsMs = GeneratedColumn<int>(
+    'frame_ts_ms',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _conceptMeta = const VerificationMeta(
+    'concept',
+  );
+  @override
+  late final GeneratedColumn<String> concept = GeneratedColumn<String>(
+    'concept',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _confidenceMeta = const VerificationMeta(
+    'confidence',
+  );
+  @override
+  late final GeneratedColumn<double> confidence = GeneratedColumn<double>(
+    'confidence',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    stableKey,
+    frameIndex,
+    frameTsMs,
+    concept,
+    confidence,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'video_visual_frames';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<VideoVisualFrame> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('stable_key')) {
+      context.handle(
+        _stableKeyMeta,
+        stableKey.isAcceptableOrUnknown(data['stable_key']!, _stableKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stableKeyMeta);
+    }
+    if (data.containsKey('frame_index')) {
+      context.handle(
+        _frameIndexMeta,
+        frameIndex.isAcceptableOrUnknown(data['frame_index']!, _frameIndexMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_frameIndexMeta);
+    }
+    if (data.containsKey('frame_ts_ms')) {
+      context.handle(
+        _frameTsMsMeta,
+        frameTsMs.isAcceptableOrUnknown(data['frame_ts_ms']!, _frameTsMsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_frameTsMsMeta);
+    }
+    if (data.containsKey('concept')) {
+      context.handle(
+        _conceptMeta,
+        concept.isAcceptableOrUnknown(data['concept']!, _conceptMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_conceptMeta);
+    }
+    if (data.containsKey('confidence')) {
+      context.handle(
+        _confidenceMeta,
+        confidence.isAcceptableOrUnknown(data['confidence']!, _confidenceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_confidenceMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {stableKey, frameIndex, concept};
+  @override
+  VideoVisualFrame map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return VideoVisualFrame(
+      stableKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stable_key'],
+      )!,
+      frameIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}frame_index'],
+      )!,
+      frameTsMs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}frame_ts_ms'],
+      )!,
+      concept: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}concept'],
+      )!,
+      confidence: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}confidence'],
+      )!,
+    );
+  }
+
+  @override
+  $VideoVisualFramesTable createAlias(String alias) {
+    return $VideoVisualFramesTable(attachedDatabase, alias);
+  }
+}
+
+class VideoVisualFrame extends DataClass
+    implements Insertable<VideoVisualFrame> {
+  /// Stable identity of the source media row (`media_items.stable_key`).
+  final String stableKey;
+
+  /// 0-based frame slot inside the video (0..maxFramesPerVideo-1).
+  final int frameIndex;
+
+  /// Milliseconds from the start of the video for this frame.
+  final int frameTsMs;
+
+  /// Curated concept identity (`VisualConceptMap`), the searchable surface.
+  final String concept;
+
+  /// Aggregated label confidence in `[minConceptConfidence, 1]`. The search
+  /// ranker maps this to visual rank points.
+  final double confidence;
+  const VideoVisualFrame({
+    required this.stableKey,
+    required this.frameIndex,
+    required this.frameTsMs,
+    required this.concept,
+    required this.confidence,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['stable_key'] = Variable<String>(stableKey);
+    map['frame_index'] = Variable<int>(frameIndex);
+    map['frame_ts_ms'] = Variable<int>(frameTsMs);
+    map['concept'] = Variable<String>(concept);
+    map['confidence'] = Variable<double>(confidence);
+    return map;
+  }
+
+  VideoVisualFramesCompanion toCompanion(bool nullToAbsent) {
+    return VideoVisualFramesCompanion(
+      stableKey: Value(stableKey),
+      frameIndex: Value(frameIndex),
+      frameTsMs: Value(frameTsMs),
+      concept: Value(concept),
+      confidence: Value(confidence),
+    );
+  }
+
+  factory VideoVisualFrame.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return VideoVisualFrame(
+      stableKey: serializer.fromJson<String>(json['stableKey']),
+      frameIndex: serializer.fromJson<int>(json['frameIndex']),
+      frameTsMs: serializer.fromJson<int>(json['frameTsMs']),
+      concept: serializer.fromJson<String>(json['concept']),
+      confidence: serializer.fromJson<double>(json['confidence']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'stableKey': serializer.toJson<String>(stableKey),
+      'frameIndex': serializer.toJson<int>(frameIndex),
+      'frameTsMs': serializer.toJson<int>(frameTsMs),
+      'concept': serializer.toJson<String>(concept),
+      'confidence': serializer.toJson<double>(confidence),
+    };
+  }
+
+  VideoVisualFrame copyWith({
+    String? stableKey,
+    int? frameIndex,
+    int? frameTsMs,
+    String? concept,
+    double? confidence,
+  }) => VideoVisualFrame(
+    stableKey: stableKey ?? this.stableKey,
+    frameIndex: frameIndex ?? this.frameIndex,
+    frameTsMs: frameTsMs ?? this.frameTsMs,
+    concept: concept ?? this.concept,
+    confidence: confidence ?? this.confidence,
+  );
+  VideoVisualFrame copyWithCompanion(VideoVisualFramesCompanion data) {
+    return VideoVisualFrame(
+      stableKey: data.stableKey.present ? data.stableKey.value : this.stableKey,
+      frameIndex: data.frameIndex.present
+          ? data.frameIndex.value
+          : this.frameIndex,
+      frameTsMs: data.frameTsMs.present ? data.frameTsMs.value : this.frameTsMs,
+      concept: data.concept.present ? data.concept.value : this.concept,
+      confidence: data.confidence.present
+          ? data.confidence.value
+          : this.confidence,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VideoVisualFrame(')
+          ..write('stableKey: $stableKey, ')
+          ..write('frameIndex: $frameIndex, ')
+          ..write('frameTsMs: $frameTsMs, ')
+          ..write('concept: $concept, ')
+          ..write('confidence: $confidence')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(stableKey, frameIndex, frameTsMs, concept, confidence);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is VideoVisualFrame &&
+          other.stableKey == this.stableKey &&
+          other.frameIndex == this.frameIndex &&
+          other.frameTsMs == this.frameTsMs &&
+          other.concept == this.concept &&
+          other.confidence == this.confidence);
+}
+
+class VideoVisualFramesCompanion extends UpdateCompanion<VideoVisualFrame> {
+  final Value<String> stableKey;
+  final Value<int> frameIndex;
+  final Value<int> frameTsMs;
+  final Value<String> concept;
+  final Value<double> confidence;
+  final Value<int> rowid;
+  const VideoVisualFramesCompanion({
+    this.stableKey = const Value.absent(),
+    this.frameIndex = const Value.absent(),
+    this.frameTsMs = const Value.absent(),
+    this.concept = const Value.absent(),
+    this.confidence = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  VideoVisualFramesCompanion.insert({
+    required String stableKey,
+    required int frameIndex,
+    required int frameTsMs,
+    required String concept,
+    required double confidence,
+    this.rowid = const Value.absent(),
+  }) : stableKey = Value(stableKey),
+       frameIndex = Value(frameIndex),
+       frameTsMs = Value(frameTsMs),
+       concept = Value(concept),
+       confidence = Value(confidence);
+  static Insertable<VideoVisualFrame> custom({
+    Expression<String>? stableKey,
+    Expression<int>? frameIndex,
+    Expression<int>? frameTsMs,
+    Expression<String>? concept,
+    Expression<double>? confidence,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (stableKey != null) 'stable_key': stableKey,
+      if (frameIndex != null) 'frame_index': frameIndex,
+      if (frameTsMs != null) 'frame_ts_ms': frameTsMs,
+      if (concept != null) 'concept': concept,
+      if (confidence != null) 'confidence': confidence,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  VideoVisualFramesCompanion copyWith({
+    Value<String>? stableKey,
+    Value<int>? frameIndex,
+    Value<int>? frameTsMs,
+    Value<String>? concept,
+    Value<double>? confidence,
+    Value<int>? rowid,
+  }) {
+    return VideoVisualFramesCompanion(
+      stableKey: stableKey ?? this.stableKey,
+      frameIndex: frameIndex ?? this.frameIndex,
+      frameTsMs: frameTsMs ?? this.frameTsMs,
+      concept: concept ?? this.concept,
+      confidence: confidence ?? this.confidence,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (stableKey.present) {
+      map['stable_key'] = Variable<String>(stableKey.value);
+    }
+    if (frameIndex.present) {
+      map['frame_index'] = Variable<int>(frameIndex.value);
+    }
+    if (frameTsMs.present) {
+      map['frame_ts_ms'] = Variable<int>(frameTsMs.value);
+    }
+    if (concept.present) {
+      map['concept'] = Variable<String>(concept.value);
+    }
+    if (confidence.present) {
+      map['confidence'] = Variable<double>(confidence.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('VideoVisualFramesCompanion(')
+          ..write('stableKey: $stableKey, ')
+          ..write('frameIndex: $frameIndex, ')
+          ..write('frameTsMs: $frameTsMs, ')
+          ..write('concept: $concept, ')
+          ..write('confidence: $confidence, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5546,6 +6419,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   );
   late final $SemanticEmbeddingsTable semanticEmbeddings =
       $SemanticEmbeddingsTable(this);
+  late final $VideoVisualStatusTable videoVisualStatus =
+      $VideoVisualStatusTable(this);
+  late final $VideoVisualFramesTable videoVisualFrames =
+      $VideoVisualFramesTable(this);
   late final Index idxMediaCategoryDateModified = Index(
     'idx_media_category_date_modified',
     'CREATE INDEX idx_media_category_date_modified ON media_items (category, date_modified)',
@@ -5594,6 +6471,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_semantic_status_key',
     'CREATE INDEX idx_semantic_status_key ON semantic_embeddings (status, stable_key)',
   );
+  late final Index idxVvfConceptConf = Index(
+    'idx_vvf_concept_conf',
+    'CREATE INDEX idx_vvf_concept_conf ON video_visual_frames (concept, confidence)',
+  );
+  late final Index idxVvfStableKey = Index(
+    'idx_vvf_stable_key',
+    'CREATE INDEX idx_vvf_stable_key ON video_visual_frames (stable_key)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5606,6 +6491,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     documents,
     documentContent,
     semanticEmbeddings,
+    videoVisualStatus,
+    videoVisualFrames,
     idxMediaCategoryDateModified,
     idxMediaVolumeMediaStoreId,
     idxMediaMimeType,
@@ -5618,6 +6505,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxDocumentsDateModified,
     idxDocumentContentStatusKey,
     idxSemanticStatusKey,
+    idxVvfConceptConf,
+    idxVvfStableKey,
   ];
 }
 
@@ -8202,6 +9091,496 @@ typedef $$SemanticEmbeddingsTableProcessedTableManager =
       SemanticEmbedding,
       PrefetchHooks Function()
     >;
+typedef $$VideoVisualStatusTableCreateCompanionBuilder =
+    VideoVisualStatusCompanion Function({
+      required String stableKey,
+      required int sourceRevision,
+      required String modelId,
+      required String status,
+      Value<String?> errorCode,
+      required int createdAt,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$VideoVisualStatusTableUpdateCompanionBuilder =
+    VideoVisualStatusCompanion Function({
+      Value<String> stableKey,
+      Value<int> sourceRevision,
+      Value<String> modelId,
+      Value<String> status,
+      Value<String?> errorCode,
+      Value<int> createdAt,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$VideoVisualStatusTableFilterComposer
+    extends Composer<_$AppDatabase, $VideoVisualStatusTable> {
+  $$VideoVisualStatusTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelId => $composableBuilder(
+    column: $table.modelId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$VideoVisualStatusTableOrderingComposer
+    extends Composer<_$AppDatabase, $VideoVisualStatusTable> {
+  $$VideoVisualStatusTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelId => $composableBuilder(
+    column: $table.modelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$VideoVisualStatusTableAnnotationComposer
+    extends Composer<_$AppDatabase, $VideoVisualStatusTable> {
+  $$VideoVisualStatusTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get stableKey =>
+      $composableBuilder(column: $table.stableKey, builder: (column) => column);
+
+  GeneratedColumn<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelId =>
+      $composableBuilder(column: $table.modelId, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get errorCode =>
+      $composableBuilder(column: $table.errorCode, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$VideoVisualStatusTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $VideoVisualStatusTable,
+          VideoVisualStatusData,
+          $$VideoVisualStatusTableFilterComposer,
+          $$VideoVisualStatusTableOrderingComposer,
+          $$VideoVisualStatusTableAnnotationComposer,
+          $$VideoVisualStatusTableCreateCompanionBuilder,
+          $$VideoVisualStatusTableUpdateCompanionBuilder,
+          (
+            VideoVisualStatusData,
+            BaseReferences<
+              _$AppDatabase,
+              $VideoVisualStatusTable,
+              VideoVisualStatusData
+            >,
+          ),
+          VideoVisualStatusData,
+          PrefetchHooks Function()
+        > {
+  $$VideoVisualStatusTableTableManager(
+    _$AppDatabase db,
+    $VideoVisualStatusTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VideoVisualStatusTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VideoVisualStatusTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VideoVisualStatusTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> stableKey = const Value.absent(),
+                Value<int> sourceRevision = const Value.absent(),
+                Value<String> modelId = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> errorCode = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VideoVisualStatusCompanion(
+                stableKey: stableKey,
+                sourceRevision: sourceRevision,
+                modelId: modelId,
+                status: status,
+                errorCode: errorCode,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String stableKey,
+                required int sourceRevision,
+                required String modelId,
+                required String status,
+                Value<String?> errorCode = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => VideoVisualStatusCompanion.insert(
+                stableKey: stableKey,
+                sourceRevision: sourceRevision,
+                modelId: modelId,
+                status: status,
+                errorCode: errorCode,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$VideoVisualStatusTable, VideoVisualStatusData>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $VideoVisualStatusTable,
+                    VideoVisualStatusData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$VideoVisualStatusTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $VideoVisualStatusTable,
+      VideoVisualStatusData,
+      $$VideoVisualStatusTableFilterComposer,
+      $$VideoVisualStatusTableOrderingComposer,
+      $$VideoVisualStatusTableAnnotationComposer,
+      $$VideoVisualStatusTableCreateCompanionBuilder,
+      $$VideoVisualStatusTableUpdateCompanionBuilder,
+      (
+        VideoVisualStatusData,
+        BaseReferences<
+          _$AppDatabase,
+          $VideoVisualStatusTable,
+          VideoVisualStatusData
+        >,
+      ),
+      VideoVisualStatusData,
+      PrefetchHooks Function()
+    >;
+typedef $$VideoVisualFramesTableCreateCompanionBuilder =
+    VideoVisualFramesCompanion Function({
+      required String stableKey,
+      required int frameIndex,
+      required int frameTsMs,
+      required String concept,
+      required double confidence,
+      Value<int> rowid,
+    });
+typedef $$VideoVisualFramesTableUpdateCompanionBuilder =
+    VideoVisualFramesCompanion Function({
+      Value<String> stableKey,
+      Value<int> frameIndex,
+      Value<int> frameTsMs,
+      Value<String> concept,
+      Value<double> confidence,
+      Value<int> rowid,
+    });
+
+class $$VideoVisualFramesTableFilterComposer
+    extends Composer<_$AppDatabase, $VideoVisualFramesTable> {
+  $$VideoVisualFramesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get frameIndex => $composableBuilder(
+    column: $table.frameIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get frameTsMs => $composableBuilder(
+    column: $table.frameTsMs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get concept => $composableBuilder(
+    column: $table.concept,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$VideoVisualFramesTableOrderingComposer
+    extends Composer<_$AppDatabase, $VideoVisualFramesTable> {
+  $$VideoVisualFramesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get frameIndex => $composableBuilder(
+    column: $table.frameIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get frameTsMs => $composableBuilder(
+    column: $table.frameTsMs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get concept => $composableBuilder(
+    column: $table.concept,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$VideoVisualFramesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $VideoVisualFramesTable> {
+  $$VideoVisualFramesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get stableKey =>
+      $composableBuilder(column: $table.stableKey, builder: (column) => column);
+
+  GeneratedColumn<int> get frameIndex => $composableBuilder(
+    column: $table.frameIndex,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get frameTsMs =>
+      $composableBuilder(column: $table.frameTsMs, builder: (column) => column);
+
+  GeneratedColumn<String> get concept =>
+      $composableBuilder(column: $table.concept, builder: (column) => column);
+
+  GeneratedColumn<double> get confidence => $composableBuilder(
+    column: $table.confidence,
+    builder: (column) => column,
+  );
+}
+
+class $$VideoVisualFramesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $VideoVisualFramesTable,
+          VideoVisualFrame,
+          $$VideoVisualFramesTableFilterComposer,
+          $$VideoVisualFramesTableOrderingComposer,
+          $$VideoVisualFramesTableAnnotationComposer,
+          $$VideoVisualFramesTableCreateCompanionBuilder,
+          $$VideoVisualFramesTableUpdateCompanionBuilder,
+          (
+            VideoVisualFrame,
+            BaseReferences<
+              _$AppDatabase,
+              $VideoVisualFramesTable,
+              VideoVisualFrame
+            >,
+          ),
+          VideoVisualFrame,
+          PrefetchHooks Function()
+        > {
+  $$VideoVisualFramesTableTableManager(
+    _$AppDatabase db,
+    $VideoVisualFramesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$VideoVisualFramesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$VideoVisualFramesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$VideoVisualFramesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> stableKey = const Value.absent(),
+                Value<int> frameIndex = const Value.absent(),
+                Value<int> frameTsMs = const Value.absent(),
+                Value<String> concept = const Value.absent(),
+                Value<double> confidence = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => VideoVisualFramesCompanion(
+                stableKey: stableKey,
+                frameIndex: frameIndex,
+                frameTsMs: frameTsMs,
+                concept: concept,
+                confidence: confidence,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String stableKey,
+                required int frameIndex,
+                required int frameTsMs,
+                required String concept,
+                required double confidence,
+                Value<int> rowid = const Value.absent(),
+              }) => VideoVisualFramesCompanion.insert(
+                stableKey: stableKey,
+                frameIndex: frameIndex,
+                frameTsMs: frameTsMs,
+                concept: concept,
+                confidence: confidence,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$VideoVisualFramesTable, VideoVisualFrame>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $VideoVisualFramesTable,
+                    VideoVisualFrame
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$VideoVisualFramesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $VideoVisualFramesTable,
+      VideoVisualFrame,
+      $$VideoVisualFramesTableFilterComposer,
+      $$VideoVisualFramesTableOrderingComposer,
+      $$VideoVisualFramesTableAnnotationComposer,
+      $$VideoVisualFramesTableCreateCompanionBuilder,
+      $$VideoVisualFramesTableUpdateCompanionBuilder,
+      (
+        VideoVisualFrame,
+        BaseReferences<
+          _$AppDatabase,
+          $VideoVisualFramesTable,
+          VideoVisualFrame
+        >,
+      ),
+      VideoVisualFrame,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8220,4 +9599,8 @@ class $AppDatabaseManager {
       $$DocumentContentTableTableManager(_db, _db.documentContent);
   $$SemanticEmbeddingsTableTableManager get semanticEmbeddings =>
       $$SemanticEmbeddingsTableTableManager(_db, _db.semanticEmbeddings);
+  $$VideoVisualStatusTableTableManager get videoVisualStatus =>
+      $$VideoVisualStatusTableTableManager(_db, _db.videoVisualStatus);
+  $$VideoVisualFramesTableTableManager get videoVisualFrames =>
+      $$VideoVisualFramesTableTableManager(_db, _db.videoVisualFrames);
 }

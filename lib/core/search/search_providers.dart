@@ -4,6 +4,7 @@ import '../database/media_repository.dart';
 import '../database/providers.dart';
 import '../documents/document_providers.dart';
 import '../semantic/semantic_providers.dart';
+import '../visual/visual_providers.dart' show visualSearchRepositoryProvider;
 import 'search_query.dart';
 import 'search_result.dart';
 import 'search_service.dart';
@@ -15,6 +16,7 @@ final searchServiceProvider = Provider<SearchService>((ref) {
     documentRepository: ref.watch(documentRepositoryProvider),
     semanticSearchRepository: ref.watch(semanticSearchRepositoryProvider),
     embeddingProvider: ref.watch(embeddingProvider),
+    visualSearchRepository: ref.watch(visualSearchRepositoryProvider),
   );
 });
 

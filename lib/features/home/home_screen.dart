@@ -668,9 +668,30 @@ class _SearchResultTile extends StatelessWidget {
     if (semanticOnly) {
       return 'Semantic match';
     }
+    final visualOnly = byField.keys.every((f) => f == SearchField.visual);
+    if (visualOnly) {
+      final concept =
+          byField[SearchField.visual]!
+              .where((t) => t.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
+      // Classification labels only — never object localization/timestamps.
+      return concept.isEmpty
+          ? 'Visual match'
+          : 'Visual match: ${concept.join(', ')}';
+    }
     final segments = byField.entries.map((entry) {
       if (entry.key == SearchField.semantic) {
         return 'conceptual similarity';
+      }
+      if (entry.key == SearchField.visual) {
+        final concepts = entry.value.toSet().where((t) => t.isNotEmpty).toList()
+          ..sort();
+        // Classification labels only — never object localization/timestamps.
+        return concepts.isEmpty
+            ? 'visual content'
+            : 'visual: ${concepts.join(', ')}';
       }
       final tokens = entry.value.toSet().where((t) => t.isNotEmpty).toList()
         ..sort();
@@ -691,6 +712,7 @@ class _SearchResultTile extends StatelessWidget {
     SearchField.ocrText => 'OCR text',
     SearchField.documentText => 'document text',
     SearchField.semantic => 'conceptual similarity',
+    SearchField.visual => 'visual content',
   };
 
   static String _categoryLabel(ContentCategory category) => switch (category) {

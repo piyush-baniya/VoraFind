@@ -1,6 +1,7 @@
 import '../database/app_database.dart';
 import '../platform/content_access_models.dart' show ContentCategory;
 import '../semantic/semantic_models.dart' show SemanticDefaults;
+import '../visual/visual_models.dart' show VisualDefaults;
 import 'search_field.dart';
 import 'search_normalizer.dart';
 import 'search_query.dart';
@@ -16,6 +17,9 @@ class SearchCandidate {
     this.documentText,
     this.semanticKey,
     this.semanticSimilarity,
+    this.visualConcept,
+    this.visualConfidence,
+    this.visualFrameTsMs,
   }) : assert(
          item != null || document != null || semanticKey != null,
          "Candidate must provide an item, a document, or a semantic key",
@@ -42,6 +46,12 @@ class SearchCandidate {
   /// candidates. Always paired with a [SearchField.semantic] match in
   /// [SearchResult.matches] by the ranker.
   final double? semanticSimilarity;
+
+  /// Best visual concept match for a video candidate: the stored concept name
+  /// (e.g. `beach`) plus its confidence and the best frame timestamp.
+  final String? visualConcept;
+  final double? visualConfidence;
+  final int? visualFrameTsMs;
 }
 
 /// Result of scoring one candidate (row + optional OCR/document text) against
@@ -96,6 +106,12 @@ class SearchScorer {
   /// truth: [SemanticDefaults.semanticRankWeight] (Prompt #14 measured the
   /// model's relevant/unrelated similarity gap before choosing the value).
   static const int semanticRankWeight = SemanticDefaults.semanticRankWeight;
+
+  /// Rank points a confidence-1.0 visual match contributes. Deliberately below
+  /// an exact filename/title/OCR/doc hit and below a strong semantic match so
+  /// keyword correctness keeps priority. Single source of truth:
+  /// [VisualDefaults.visualRankWeight].
+  static const int visualRankWeight = VisualDefaults.visualRankWeight;
 
   /// Multiplier per match strength: an exact whole-word match outweighs a
   /// prefix, which outweighs a plain substring. This is what makes
@@ -177,6 +193,29 @@ class SearchScorer {
         MatchInfo(
           field: SearchField.semantic,
           token: '',
+          strength: MatchStrength.substring,
+        ),
+      ],
+    );
+  }
+
+  /// Scores a visual hit: `confidence` in [0, 1] maps linearly to
+  /// [0, visualRankWeight]. Returns a single [SearchField.visual] match whose
+  /// token is the stored concept name so the UI can render "Visual match".
+  /// Additive with keyword/semantic scores in [SearchRanker]; kept below any
+  /// exact filename/title/OCR/doc hit per [VisualDefaults.visualRankWeight].
+  ScoredMatch scoreVisual({
+    required String concept,
+    required double confidence,
+  }) {
+    final clamped = confidence.clamp(0.0, 1.0);
+    final points = (clamped * visualRankWeight).round();
+    return ScoredMatch(
+      score: points,
+      matches: [
+        MatchInfo(
+          field: SearchField.visual,
+          token: concept,
           strength: MatchStrength.substring,
         ),
       ],
@@ -276,7 +315,31 @@ class SearchRanker {
           if (semanticScored != null) {
             matches.addAll(semanticScored.matches);
           }
-          final score = keywordScore + (semanticScored?.score ?? 0);
+          // Visual retrieval enforces `VisualDefaults.minConceptConfidence`
+          // before any candidate reaches the pool; the ranker mirrors the
+          // check so a sub-threshold confidence can never fabricate a
+          // "visual match" (defense-in-depth). Media-only: documents never
+          // carry visual signals.
+          final visualConcept = candidate.visualConcept;
+          final visualConfidence = candidate.visualConfidence;
+          final visualScored =
+              candidate.document == null &&
+                  visualConcept != null &&
+                  visualConcept.isNotEmpty &&
+                  visualConfidence != null &&
+                  visualConfidence >= VisualDefaults.minConceptConfidence
+              ? scorer.scoreVisual(
+                  concept: visualConcept,
+                  confidence: visualConfidence,
+                )
+              : null;
+          if (visualScored != null) {
+            matches.addAll(visualScored.matches);
+          }
+          final score =
+              keywordScore +
+              (semanticScored?.score ?? 0) +
+              (visualScored?.score ?? 0);
 
           if (candidate.document != null) {
             final doc = candidate.document!;
@@ -319,6 +382,8 @@ class SearchRanker {
             isScreenshot: row.isScreenshot,
             score: score,
             matches: matches,
+            visualConcept: candidate.visualConcept,
+            visualFrameTsMs: candidate.visualFrameTsMs,
           );
         })
         .toList(growable: false);

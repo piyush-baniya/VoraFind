@@ -25,6 +25,11 @@ enum SearchField {
   /// stored embedding is close to the query embedding, not because of a
   /// keyword hit. Weighted by [SearchRanker] via [SemanticDefaults].
   semantic,
+
+  /// Visual concept match — the video was retrieved because an indexed frame
+  /// contained a concept the query names (classification labels only, never
+  /// object localization). Weighted by [SearchRanker] via [VisualDefaults].
+  visual,
 }
 
 /// How strongly one token matched one field value.

@@ -18,6 +18,7 @@ import 'index_state_table.dart';
 import 'media_items_table.dart';
 import 'ocr_content_table.dart';
 import 'saf_grants_table.dart';
+import 'video_visual_tables.dart';
 
 part 'app_database.g.dart';
 
@@ -35,7 +36,9 @@ part 'app_database.g.dart';
 /// document tables (`saf_grants`, `documents`, `document_content`) so PDFs
 /// and plain-text files are indexed separately from MediaStore media. Schema
 /// v6 adds `semantic_embeddings`, the local vector store for semantic search
-/// (docs `semantic-search.md`).
+/// (docs `semantic-search.md`). Schema v7 adds `video_visual_status` and
+/// `video_visual_frames`, the derived store for index-time video frame
+/// classification (docs `video-visual-search.md`).
 @DriftDatabase(
   tables: [
     MediaItems,
@@ -45,6 +48,8 @@ part 'app_database.g.dart';
     Documents,
     DocumentContent,
     SemanticEmbeddings,
+    VideoVisualStatus,
+    VideoVisualFrames,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -55,7 +60,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forApp() : super(driftDatabase(name: 'vorafind'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -84,6 +89,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 6) {
         await m.createTable(semanticEmbeddings);
+      }
+      if (from < 7) {
+        await m.createTable(videoVisualStatus);
+        await m.createTable(videoVisualFrames);
       }
     },
   );
