@@ -2,13 +2,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../database/media_repository.dart';
 import '../database/providers.dart';
+import '../documents/document_providers.dart';
 import 'search_query.dart';
 import 'search_result.dart';
 import 'search_service.dart';
 
-/// Creates a search over the durable media index.
+/// Creates a search over the durable media and document index.
 final searchServiceProvider = Provider<SearchService>((ref) {
-  return SearchService(repository: ref.watch(mediaRepositoryProvider));
+  return SearchService(
+    repository: ref.watch(mediaRepositoryProvider),
+    documentRepository: ref.watch(documentRepositoryProvider),
+  );
 });
 
 /// Typed confirmation that a search completed (or an empty outcome for an

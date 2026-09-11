@@ -2863,12 +2863,1971 @@ class OcrContentCompanion extends UpdateCompanion<OcrContentData> {
   }
 }
 
+class $SafGrantsTable extends SafGrants
+    with TableInfo<$SafGrantsTable, SafGrant> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $SafGrantsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _treeUriMeta = const VerificationMeta(
+    'treeUri',
+  );
+  @override
+  late final GeneratedColumn<String> treeUri = GeneratedColumn<String>(
+    'tree_uri',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _persistedMeta = const VerificationMeta(
+    'persisted',
+  );
+  @override
+  late final GeneratedColumn<bool> persisted = GeneratedColumn<bool>(
+    'persisted',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("persisted" IN (0, 1))',
+    ),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DocumentAccessState, String>
+  accessState = GeneratedColumn<String>(
+    'access_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<DocumentAccessState>($SafGrantsTable.$converteraccessState);
+  static const VerificationMeta _lastSeenAtMeta = const VerificationMeta(
+    'lastSeenAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastSeenAt = GeneratedColumn<int>(
+    'last_seen_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastEnumeratedAtMeta = const VerificationMeta(
+    'lastEnumeratedAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastEnumeratedAt = GeneratedColumn<int>(
+    'last_enumerated_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    treeUri,
+    displayName,
+    persisted,
+    accessState,
+    lastSeenAt,
+    lastEnumeratedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'saf_grants';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<SafGrant> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('tree_uri')) {
+      context.handle(
+        _treeUriMeta,
+        treeUri.isAcceptableOrUnknown(data['tree_uri']!, _treeUriMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_treeUriMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('persisted')) {
+      context.handle(
+        _persistedMeta,
+        persisted.isAcceptableOrUnknown(data['persisted']!, _persistedMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_persistedMeta);
+    }
+    if (data.containsKey('last_seen_at')) {
+      context.handle(
+        _lastSeenAtMeta,
+        lastSeenAt.isAcceptableOrUnknown(
+          data['last_seen_at']!,
+          _lastSeenAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastSeenAtMeta);
+    }
+    if (data.containsKey('last_enumerated_at')) {
+      context.handle(
+        _lastEnumeratedAtMeta,
+        lastEnumeratedAt.isAcceptableOrUnknown(
+          data['last_enumerated_at']!,
+          _lastEnumeratedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {treeUri};
+  @override
+  SafGrant map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return SafGrant(
+      treeUri: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tree_uri'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      persisted: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}persisted'],
+      )!,
+      accessState: $SafGrantsTable.$converteraccessState.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}access_state'],
+        )!,
+      ),
+      lastSeenAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_seen_at'],
+      )!,
+      lastEnumeratedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_enumerated_at'],
+      ),
+    );
+  }
+
+  @override
+  $SafGrantsTable createAlias(String alias) {
+    return $SafGrantsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<DocumentAccessState, String> $converteraccessState =
+      const DocumentAccessStateConverter();
+}
+
+class SafGrant extends DataClass implements Insertable<SafGrant> {
+  final String treeUri;
+  final String displayName;
+  final bool persisted;
+  final DocumentAccessState accessState;
+  final int lastSeenAt;
+  final int? lastEnumeratedAt;
+  const SafGrant({
+    required this.treeUri,
+    required this.displayName,
+    required this.persisted,
+    required this.accessState,
+    required this.lastSeenAt,
+    this.lastEnumeratedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['tree_uri'] = Variable<String>(treeUri);
+    map['display_name'] = Variable<String>(displayName);
+    map['persisted'] = Variable<bool>(persisted);
+    {
+      map['access_state'] = Variable<String>(
+        $SafGrantsTable.$converteraccessState.toSql(accessState),
+      );
+    }
+    map['last_seen_at'] = Variable<int>(lastSeenAt);
+    if (!nullToAbsent || lastEnumeratedAt != null) {
+      map['last_enumerated_at'] = Variable<int>(lastEnumeratedAt);
+    }
+    return map;
+  }
+
+  SafGrantsCompanion toCompanion(bool nullToAbsent) {
+    return SafGrantsCompanion(
+      treeUri: Value(treeUri),
+      displayName: Value(displayName),
+      persisted: Value(persisted),
+      accessState: Value(accessState),
+      lastSeenAt: Value(lastSeenAt),
+      lastEnumeratedAt: lastEnumeratedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastEnumeratedAt),
+    );
+  }
+
+  factory SafGrant.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return SafGrant(
+      treeUri: serializer.fromJson<String>(json['treeUri']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      persisted: serializer.fromJson<bool>(json['persisted']),
+      accessState: serializer.fromJson<DocumentAccessState>(
+        json['accessState'],
+      ),
+      lastSeenAt: serializer.fromJson<int>(json['lastSeenAt']),
+      lastEnumeratedAt: serializer.fromJson<int?>(json['lastEnumeratedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'treeUri': serializer.toJson<String>(treeUri),
+      'displayName': serializer.toJson<String>(displayName),
+      'persisted': serializer.toJson<bool>(persisted),
+      'accessState': serializer.toJson<DocumentAccessState>(accessState),
+      'lastSeenAt': serializer.toJson<int>(lastSeenAt),
+      'lastEnumeratedAt': serializer.toJson<int?>(lastEnumeratedAt),
+    };
+  }
+
+  SafGrant copyWith({
+    String? treeUri,
+    String? displayName,
+    bool? persisted,
+    DocumentAccessState? accessState,
+    int? lastSeenAt,
+    Value<int?> lastEnumeratedAt = const Value.absent(),
+  }) => SafGrant(
+    treeUri: treeUri ?? this.treeUri,
+    displayName: displayName ?? this.displayName,
+    persisted: persisted ?? this.persisted,
+    accessState: accessState ?? this.accessState,
+    lastSeenAt: lastSeenAt ?? this.lastSeenAt,
+    lastEnumeratedAt: lastEnumeratedAt.present
+        ? lastEnumeratedAt.value
+        : this.lastEnumeratedAt,
+  );
+  SafGrant copyWithCompanion(SafGrantsCompanion data) {
+    return SafGrant(
+      treeUri: data.treeUri.present ? data.treeUri.value : this.treeUri,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      persisted: data.persisted.present ? data.persisted.value : this.persisted,
+      accessState: data.accessState.present
+          ? data.accessState.value
+          : this.accessState,
+      lastSeenAt: data.lastSeenAt.present
+          ? data.lastSeenAt.value
+          : this.lastSeenAt,
+      lastEnumeratedAt: data.lastEnumeratedAt.present
+          ? data.lastEnumeratedAt.value
+          : this.lastEnumeratedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SafGrant(')
+          ..write('treeUri: $treeUri, ')
+          ..write('displayName: $displayName, ')
+          ..write('persisted: $persisted, ')
+          ..write('accessState: $accessState, ')
+          ..write('lastSeenAt: $lastSeenAt, ')
+          ..write('lastEnumeratedAt: $lastEnumeratedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    treeUri,
+    displayName,
+    persisted,
+    accessState,
+    lastSeenAt,
+    lastEnumeratedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is SafGrant &&
+          other.treeUri == this.treeUri &&
+          other.displayName == this.displayName &&
+          other.persisted == this.persisted &&
+          other.accessState == this.accessState &&
+          other.lastSeenAt == this.lastSeenAt &&
+          other.lastEnumeratedAt == this.lastEnumeratedAt);
+}
+
+class SafGrantsCompanion extends UpdateCompanion<SafGrant> {
+  final Value<String> treeUri;
+  final Value<String> displayName;
+  final Value<bool> persisted;
+  final Value<DocumentAccessState> accessState;
+  final Value<int> lastSeenAt;
+  final Value<int?> lastEnumeratedAt;
+  final Value<int> rowid;
+  const SafGrantsCompanion({
+    this.treeUri = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.persisted = const Value.absent(),
+    this.accessState = const Value.absent(),
+    this.lastSeenAt = const Value.absent(),
+    this.lastEnumeratedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  SafGrantsCompanion.insert({
+    required String treeUri,
+    required String displayName,
+    required bool persisted,
+    required DocumentAccessState accessState,
+    required int lastSeenAt,
+    this.lastEnumeratedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : treeUri = Value(treeUri),
+       displayName = Value(displayName),
+       persisted = Value(persisted),
+       accessState = Value(accessState),
+       lastSeenAt = Value(lastSeenAt);
+  static Insertable<SafGrant> custom({
+    Expression<String>? treeUri,
+    Expression<String>? displayName,
+    Expression<bool>? persisted,
+    Expression<String>? accessState,
+    Expression<int>? lastSeenAt,
+    Expression<int>? lastEnumeratedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (treeUri != null) 'tree_uri': treeUri,
+      if (displayName != null) 'display_name': displayName,
+      if (persisted != null) 'persisted': persisted,
+      if (accessState != null) 'access_state': accessState,
+      if (lastSeenAt != null) 'last_seen_at': lastSeenAt,
+      if (lastEnumeratedAt != null) 'last_enumerated_at': lastEnumeratedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  SafGrantsCompanion copyWith({
+    Value<String>? treeUri,
+    Value<String>? displayName,
+    Value<bool>? persisted,
+    Value<DocumentAccessState>? accessState,
+    Value<int>? lastSeenAt,
+    Value<int?>? lastEnumeratedAt,
+    Value<int>? rowid,
+  }) {
+    return SafGrantsCompanion(
+      treeUri: treeUri ?? this.treeUri,
+      displayName: displayName ?? this.displayName,
+      persisted: persisted ?? this.persisted,
+      accessState: accessState ?? this.accessState,
+      lastSeenAt: lastSeenAt ?? this.lastSeenAt,
+      lastEnumeratedAt: lastEnumeratedAt ?? this.lastEnumeratedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (treeUri.present) {
+      map['tree_uri'] = Variable<String>(treeUri.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (persisted.present) {
+      map['persisted'] = Variable<bool>(persisted.value);
+    }
+    if (accessState.present) {
+      map['access_state'] = Variable<String>(
+        $SafGrantsTable.$converteraccessState.toSql(accessState.value),
+      );
+    }
+    if (lastSeenAt.present) {
+      map['last_seen_at'] = Variable<int>(lastSeenAt.value);
+    }
+    if (lastEnumeratedAt.present) {
+      map['last_enumerated_at'] = Variable<int>(lastEnumeratedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('SafGrantsCompanion(')
+          ..write('treeUri: $treeUri, ')
+          ..write('displayName: $displayName, ')
+          ..write('persisted: $persisted, ')
+          ..write('accessState: $accessState, ')
+          ..write('lastSeenAt: $lastSeenAt, ')
+          ..write('lastEnumeratedAt: $lastEnumeratedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DocumentsTable extends Documents
+    with TableInfo<$DocumentsTable, Document> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DocumentsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _stableKeyMeta = const VerificationMeta(
+    'stableKey',
+  );
+  @override
+  late final GeneratedColumn<String> stableKey = GeneratedColumn<String>(
+    'stable_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _treeUriMeta = const VerificationMeta(
+    'treeUri',
+  );
+  @override
+  late final GeneratedColumn<String> treeUri = GeneratedColumn<String>(
+    'tree_uri',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _documentIdMeta = const VerificationMeta(
+    'documentId',
+  );
+  @override
+  late final GeneratedColumn<String> documentId = GeneratedColumn<String>(
+    'document_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _uriMeta = const VerificationMeta('uri');
+  @override
+  late final GeneratedColumn<String> uri = GeneratedColumn<String>(
+    'uri',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _displayNameMeta = const VerificationMeta(
+    'displayName',
+  );
+  @override
+  late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
+    'display_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _mimeTypeMeta = const VerificationMeta(
+    'mimeType',
+  );
+  @override
+  late final GeneratedColumn<String> mimeType = GeneratedColumn<String>(
+    'mime_type',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _sizeBytesMeta = const VerificationMeta(
+    'sizeBytes',
+  );
+  @override
+  late final GeneratedColumn<int> sizeBytes = GeneratedColumn<int>(
+    'size_bytes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dateModifiedMeta = const VerificationMeta(
+    'dateModified',
+  );
+  @override
+  late final GeneratedColumn<int> dateModified = GeneratedColumn<int>(
+    'date_modified',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _relativePathMeta = const VerificationMeta(
+    'relativePath',
+  );
+  @override
+  late final GeneratedColumn<String> relativePath = GeneratedColumn<String>(
+    'relative_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _contentFingerprintMeta =
+      const VerificationMeta('contentFingerprint');
+  @override
+  late final GeneratedColumn<String> contentFingerprint =
+      GeneratedColumn<String>(
+        'content_fingerprint',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _sourceRevisionMeta = const VerificationMeta(
+    'sourceRevision',
+  );
+  @override
+  late final GeneratedColumn<int> sourceRevision = GeneratedColumn<int>(
+    'source_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DocumentAccessState, String>
+  accessState = GeneratedColumn<String>(
+    'access_state',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<DocumentAccessState>($DocumentsTable.$converteraccessState);
+  static const VerificationMeta _firstDiscoveredAtMeta = const VerificationMeta(
+    'firstDiscoveredAt',
+  );
+  @override
+  late final GeneratedColumn<int> firstDiscoveredAt = GeneratedColumn<int>(
+    'first_discovered_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastDiscoveredAtMeta = const VerificationMeta(
+    'lastDiscoveredAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastDiscoveredAt = GeneratedColumn<int>(
+    'last_discovered_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _searchableTextMeta = const VerificationMeta(
+    'searchableText',
+  );
+  @override
+  late final GeneratedColumn<String> searchableText = GeneratedColumn<String>(
+    'searchable_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    stableKey,
+    treeUri,
+    documentId,
+    uri,
+    displayName,
+    mimeType,
+    sizeBytes,
+    dateModified,
+    relativePath,
+    contentFingerprint,
+    sourceRevision,
+    accessState,
+    firstDiscoveredAt,
+    lastDiscoveredAt,
+    searchableText,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'documents';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Document> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('stable_key')) {
+      context.handle(
+        _stableKeyMeta,
+        stableKey.isAcceptableOrUnknown(data['stable_key']!, _stableKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stableKeyMeta);
+    }
+    if (data.containsKey('tree_uri')) {
+      context.handle(
+        _treeUriMeta,
+        treeUri.isAcceptableOrUnknown(data['tree_uri']!, _treeUriMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_treeUriMeta);
+    }
+    if (data.containsKey('document_id')) {
+      context.handle(
+        _documentIdMeta,
+        documentId.isAcceptableOrUnknown(data['document_id']!, _documentIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_documentIdMeta);
+    }
+    if (data.containsKey('uri')) {
+      context.handle(
+        _uriMeta,
+        uri.isAcceptableOrUnknown(data['uri']!, _uriMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_uriMeta);
+    }
+    if (data.containsKey('display_name')) {
+      context.handle(
+        _displayNameMeta,
+        displayName.isAcceptableOrUnknown(
+          data['display_name']!,
+          _displayNameMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_displayNameMeta);
+    }
+    if (data.containsKey('mime_type')) {
+      context.handle(
+        _mimeTypeMeta,
+        mimeType.isAcceptableOrUnknown(data['mime_type']!, _mimeTypeMeta),
+      );
+    }
+    if (data.containsKey('size_bytes')) {
+      context.handle(
+        _sizeBytesMeta,
+        sizeBytes.isAcceptableOrUnknown(data['size_bytes']!, _sizeBytesMeta),
+      );
+    }
+    if (data.containsKey('date_modified')) {
+      context.handle(
+        _dateModifiedMeta,
+        dateModified.isAcceptableOrUnknown(
+          data['date_modified']!,
+          _dateModifiedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('relative_path')) {
+      context.handle(
+        _relativePathMeta,
+        relativePath.isAcceptableOrUnknown(
+          data['relative_path']!,
+          _relativePathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('content_fingerprint')) {
+      context.handle(
+        _contentFingerprintMeta,
+        contentFingerprint.isAcceptableOrUnknown(
+          data['content_fingerprint']!,
+          _contentFingerprintMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_contentFingerprintMeta);
+    }
+    if (data.containsKey('source_revision')) {
+      context.handle(
+        _sourceRevisionMeta,
+        sourceRevision.isAcceptableOrUnknown(
+          data['source_revision']!,
+          _sourceRevisionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceRevisionMeta);
+    }
+    if (data.containsKey('first_discovered_at')) {
+      context.handle(
+        _firstDiscoveredAtMeta,
+        firstDiscoveredAt.isAcceptableOrUnknown(
+          data['first_discovered_at']!,
+          _firstDiscoveredAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_firstDiscoveredAtMeta);
+    }
+    if (data.containsKey('last_discovered_at')) {
+      context.handle(
+        _lastDiscoveredAtMeta,
+        lastDiscoveredAt.isAcceptableOrUnknown(
+          data['last_discovered_at']!,
+          _lastDiscoveredAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastDiscoveredAtMeta);
+    }
+    if (data.containsKey('searchable_text')) {
+      context.handle(
+        _searchableTextMeta,
+        searchableText.isAcceptableOrUnknown(
+          data['searchable_text']!,
+          _searchableTextMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {stableKey};
+  @override
+  Document map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Document(
+      stableKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stable_key'],
+      )!,
+      treeUri: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}tree_uri'],
+      )!,
+      documentId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}document_id'],
+      )!,
+      uri: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}uri'],
+      )!,
+      displayName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}display_name'],
+      )!,
+      mimeType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}mime_type'],
+      ),
+      sizeBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}size_bytes'],
+      ),
+      dateModified: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}date_modified'],
+      ),
+      relativePath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}relative_path'],
+      ),
+      contentFingerprint: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_fingerprint'],
+      )!,
+      sourceRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_revision'],
+      )!,
+      accessState: $DocumentsTable.$converteraccessState.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}access_state'],
+        )!,
+      ),
+      firstDiscoveredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}first_discovered_at'],
+      )!,
+      lastDiscoveredAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_discovered_at'],
+      )!,
+      searchableText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}searchable_text'],
+      )!,
+    );
+  }
+
+  @override
+  $DocumentsTable createAlias(String alias) {
+    return $DocumentsTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<DocumentAccessState, String> $converteraccessState =
+      const DocumentAccessStateConverter();
+}
+
+class Document extends DataClass implements Insertable<Document> {
+  /// `saf:{urlencoded treeUri}:{urlencoded documentId}` from Kotlin.
+  final String stableKey;
+  final String treeUri;
+  final String documentId;
+
+  /// Content URI reconstructible from the tree grant + document id.
+  final String uri;
+  final String displayName;
+  final String? mimeType;
+  final int? sizeBytes;
+
+  /// Epoch seconds (converted from DocumentsContract milliseconds).
+  final int? dateModified;
+
+  /// Tree-relative display path (`Folder/Sub/file.pdf`).
+  final String? relativePath;
+
+  /// `size|modified|mime` snapshot; compared on upsert to decide revision bumps.
+  final String contentFingerprint;
+
+  /// Monotonic counter; copied onto `document_content.source_revision`.
+  final int sourceRevision;
+  final DocumentAccessState accessState;
+  final int firstDiscoveredAt;
+  final int lastDiscoveredAt;
+
+  /// Normalized name + path + mime for metadata keyword retrieval.
+  final String searchableText;
+  const Document({
+    required this.stableKey,
+    required this.treeUri,
+    required this.documentId,
+    required this.uri,
+    required this.displayName,
+    this.mimeType,
+    this.sizeBytes,
+    this.dateModified,
+    this.relativePath,
+    required this.contentFingerprint,
+    required this.sourceRevision,
+    required this.accessState,
+    required this.firstDiscoveredAt,
+    required this.lastDiscoveredAt,
+    required this.searchableText,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['stable_key'] = Variable<String>(stableKey);
+    map['tree_uri'] = Variable<String>(treeUri);
+    map['document_id'] = Variable<String>(documentId);
+    map['uri'] = Variable<String>(uri);
+    map['display_name'] = Variable<String>(displayName);
+    if (!nullToAbsent || mimeType != null) {
+      map['mime_type'] = Variable<String>(mimeType);
+    }
+    if (!nullToAbsent || sizeBytes != null) {
+      map['size_bytes'] = Variable<int>(sizeBytes);
+    }
+    if (!nullToAbsent || dateModified != null) {
+      map['date_modified'] = Variable<int>(dateModified);
+    }
+    if (!nullToAbsent || relativePath != null) {
+      map['relative_path'] = Variable<String>(relativePath);
+    }
+    map['content_fingerprint'] = Variable<String>(contentFingerprint);
+    map['source_revision'] = Variable<int>(sourceRevision);
+    {
+      map['access_state'] = Variable<String>(
+        $DocumentsTable.$converteraccessState.toSql(accessState),
+      );
+    }
+    map['first_discovered_at'] = Variable<int>(firstDiscoveredAt);
+    map['last_discovered_at'] = Variable<int>(lastDiscoveredAt);
+    map['searchable_text'] = Variable<String>(searchableText);
+    return map;
+  }
+
+  DocumentsCompanion toCompanion(bool nullToAbsent) {
+    return DocumentsCompanion(
+      stableKey: Value(stableKey),
+      treeUri: Value(treeUri),
+      documentId: Value(documentId),
+      uri: Value(uri),
+      displayName: Value(displayName),
+      mimeType: mimeType == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mimeType),
+      sizeBytes: sizeBytes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(sizeBytes),
+      dateModified: dateModified == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dateModified),
+      relativePath: relativePath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relativePath),
+      contentFingerprint: Value(contentFingerprint),
+      sourceRevision: Value(sourceRevision),
+      accessState: Value(accessState),
+      firstDiscoveredAt: Value(firstDiscoveredAt),
+      lastDiscoveredAt: Value(lastDiscoveredAt),
+      searchableText: Value(searchableText),
+    );
+  }
+
+  factory Document.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Document(
+      stableKey: serializer.fromJson<String>(json['stableKey']),
+      treeUri: serializer.fromJson<String>(json['treeUri']),
+      documentId: serializer.fromJson<String>(json['documentId']),
+      uri: serializer.fromJson<String>(json['uri']),
+      displayName: serializer.fromJson<String>(json['displayName']),
+      mimeType: serializer.fromJson<String?>(json['mimeType']),
+      sizeBytes: serializer.fromJson<int?>(json['sizeBytes']),
+      dateModified: serializer.fromJson<int?>(json['dateModified']),
+      relativePath: serializer.fromJson<String?>(json['relativePath']),
+      contentFingerprint: serializer.fromJson<String>(
+        json['contentFingerprint'],
+      ),
+      sourceRevision: serializer.fromJson<int>(json['sourceRevision']),
+      accessState: serializer.fromJson<DocumentAccessState>(
+        json['accessState'],
+      ),
+      firstDiscoveredAt: serializer.fromJson<int>(json['firstDiscoveredAt']),
+      lastDiscoveredAt: serializer.fromJson<int>(json['lastDiscoveredAt']),
+      searchableText: serializer.fromJson<String>(json['searchableText']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'stableKey': serializer.toJson<String>(stableKey),
+      'treeUri': serializer.toJson<String>(treeUri),
+      'documentId': serializer.toJson<String>(documentId),
+      'uri': serializer.toJson<String>(uri),
+      'displayName': serializer.toJson<String>(displayName),
+      'mimeType': serializer.toJson<String?>(mimeType),
+      'sizeBytes': serializer.toJson<int?>(sizeBytes),
+      'dateModified': serializer.toJson<int?>(dateModified),
+      'relativePath': serializer.toJson<String?>(relativePath),
+      'contentFingerprint': serializer.toJson<String>(contentFingerprint),
+      'sourceRevision': serializer.toJson<int>(sourceRevision),
+      'accessState': serializer.toJson<DocumentAccessState>(accessState),
+      'firstDiscoveredAt': serializer.toJson<int>(firstDiscoveredAt),
+      'lastDiscoveredAt': serializer.toJson<int>(lastDiscoveredAt),
+      'searchableText': serializer.toJson<String>(searchableText),
+    };
+  }
+
+  Document copyWith({
+    String? stableKey,
+    String? treeUri,
+    String? documentId,
+    String? uri,
+    String? displayName,
+    Value<String?> mimeType = const Value.absent(),
+    Value<int?> sizeBytes = const Value.absent(),
+    Value<int?> dateModified = const Value.absent(),
+    Value<String?> relativePath = const Value.absent(),
+    String? contentFingerprint,
+    int? sourceRevision,
+    DocumentAccessState? accessState,
+    int? firstDiscoveredAt,
+    int? lastDiscoveredAt,
+    String? searchableText,
+  }) => Document(
+    stableKey: stableKey ?? this.stableKey,
+    treeUri: treeUri ?? this.treeUri,
+    documentId: documentId ?? this.documentId,
+    uri: uri ?? this.uri,
+    displayName: displayName ?? this.displayName,
+    mimeType: mimeType.present ? mimeType.value : this.mimeType,
+    sizeBytes: sizeBytes.present ? sizeBytes.value : this.sizeBytes,
+    dateModified: dateModified.present ? dateModified.value : this.dateModified,
+    relativePath: relativePath.present ? relativePath.value : this.relativePath,
+    contentFingerprint: contentFingerprint ?? this.contentFingerprint,
+    sourceRevision: sourceRevision ?? this.sourceRevision,
+    accessState: accessState ?? this.accessState,
+    firstDiscoveredAt: firstDiscoveredAt ?? this.firstDiscoveredAt,
+    lastDiscoveredAt: lastDiscoveredAt ?? this.lastDiscoveredAt,
+    searchableText: searchableText ?? this.searchableText,
+  );
+  Document copyWithCompanion(DocumentsCompanion data) {
+    return Document(
+      stableKey: data.stableKey.present ? data.stableKey.value : this.stableKey,
+      treeUri: data.treeUri.present ? data.treeUri.value : this.treeUri,
+      documentId: data.documentId.present
+          ? data.documentId.value
+          : this.documentId,
+      uri: data.uri.present ? data.uri.value : this.uri,
+      displayName: data.displayName.present
+          ? data.displayName.value
+          : this.displayName,
+      mimeType: data.mimeType.present ? data.mimeType.value : this.mimeType,
+      sizeBytes: data.sizeBytes.present ? data.sizeBytes.value : this.sizeBytes,
+      dateModified: data.dateModified.present
+          ? data.dateModified.value
+          : this.dateModified,
+      relativePath: data.relativePath.present
+          ? data.relativePath.value
+          : this.relativePath,
+      contentFingerprint: data.contentFingerprint.present
+          ? data.contentFingerprint.value
+          : this.contentFingerprint,
+      sourceRevision: data.sourceRevision.present
+          ? data.sourceRevision.value
+          : this.sourceRevision,
+      accessState: data.accessState.present
+          ? data.accessState.value
+          : this.accessState,
+      firstDiscoveredAt: data.firstDiscoveredAt.present
+          ? data.firstDiscoveredAt.value
+          : this.firstDiscoveredAt,
+      lastDiscoveredAt: data.lastDiscoveredAt.present
+          ? data.lastDiscoveredAt.value
+          : this.lastDiscoveredAt,
+      searchableText: data.searchableText.present
+          ? data.searchableText.value
+          : this.searchableText,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Document(')
+          ..write('stableKey: $stableKey, ')
+          ..write('treeUri: $treeUri, ')
+          ..write('documentId: $documentId, ')
+          ..write('uri: $uri, ')
+          ..write('displayName: $displayName, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('dateModified: $dateModified, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('contentFingerprint: $contentFingerprint, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('accessState: $accessState, ')
+          ..write('firstDiscoveredAt: $firstDiscoveredAt, ')
+          ..write('lastDiscoveredAt: $lastDiscoveredAt, ')
+          ..write('searchableText: $searchableText')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    stableKey,
+    treeUri,
+    documentId,
+    uri,
+    displayName,
+    mimeType,
+    sizeBytes,
+    dateModified,
+    relativePath,
+    contentFingerprint,
+    sourceRevision,
+    accessState,
+    firstDiscoveredAt,
+    lastDiscoveredAt,
+    searchableText,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Document &&
+          other.stableKey == this.stableKey &&
+          other.treeUri == this.treeUri &&
+          other.documentId == this.documentId &&
+          other.uri == this.uri &&
+          other.displayName == this.displayName &&
+          other.mimeType == this.mimeType &&
+          other.sizeBytes == this.sizeBytes &&
+          other.dateModified == this.dateModified &&
+          other.relativePath == this.relativePath &&
+          other.contentFingerprint == this.contentFingerprint &&
+          other.sourceRevision == this.sourceRevision &&
+          other.accessState == this.accessState &&
+          other.firstDiscoveredAt == this.firstDiscoveredAt &&
+          other.lastDiscoveredAt == this.lastDiscoveredAt &&
+          other.searchableText == this.searchableText);
+}
+
+class DocumentsCompanion extends UpdateCompanion<Document> {
+  final Value<String> stableKey;
+  final Value<String> treeUri;
+  final Value<String> documentId;
+  final Value<String> uri;
+  final Value<String> displayName;
+  final Value<String?> mimeType;
+  final Value<int?> sizeBytes;
+  final Value<int?> dateModified;
+  final Value<String?> relativePath;
+  final Value<String> contentFingerprint;
+  final Value<int> sourceRevision;
+  final Value<DocumentAccessState> accessState;
+  final Value<int> firstDiscoveredAt;
+  final Value<int> lastDiscoveredAt;
+  final Value<String> searchableText;
+  final Value<int> rowid;
+  const DocumentsCompanion({
+    this.stableKey = const Value.absent(),
+    this.treeUri = const Value.absent(),
+    this.documentId = const Value.absent(),
+    this.uri = const Value.absent(),
+    this.displayName = const Value.absent(),
+    this.mimeType = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.dateModified = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    this.contentFingerprint = const Value.absent(),
+    this.sourceRevision = const Value.absent(),
+    this.accessState = const Value.absent(),
+    this.firstDiscoveredAt = const Value.absent(),
+    this.lastDiscoveredAt = const Value.absent(),
+    this.searchableText = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DocumentsCompanion.insert({
+    required String stableKey,
+    required String treeUri,
+    required String documentId,
+    required String uri,
+    required String displayName,
+    this.mimeType = const Value.absent(),
+    this.sizeBytes = const Value.absent(),
+    this.dateModified = const Value.absent(),
+    this.relativePath = const Value.absent(),
+    required String contentFingerprint,
+    required int sourceRevision,
+    required DocumentAccessState accessState,
+    required int firstDiscoveredAt,
+    required int lastDiscoveredAt,
+    this.searchableText = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : stableKey = Value(stableKey),
+       treeUri = Value(treeUri),
+       documentId = Value(documentId),
+       uri = Value(uri),
+       displayName = Value(displayName),
+       contentFingerprint = Value(contentFingerprint),
+       sourceRevision = Value(sourceRevision),
+       accessState = Value(accessState),
+       firstDiscoveredAt = Value(firstDiscoveredAt),
+       lastDiscoveredAt = Value(lastDiscoveredAt);
+  static Insertable<Document> custom({
+    Expression<String>? stableKey,
+    Expression<String>? treeUri,
+    Expression<String>? documentId,
+    Expression<String>? uri,
+    Expression<String>? displayName,
+    Expression<String>? mimeType,
+    Expression<int>? sizeBytes,
+    Expression<int>? dateModified,
+    Expression<String>? relativePath,
+    Expression<String>? contentFingerprint,
+    Expression<int>? sourceRevision,
+    Expression<String>? accessState,
+    Expression<int>? firstDiscoveredAt,
+    Expression<int>? lastDiscoveredAt,
+    Expression<String>? searchableText,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (stableKey != null) 'stable_key': stableKey,
+      if (treeUri != null) 'tree_uri': treeUri,
+      if (documentId != null) 'document_id': documentId,
+      if (uri != null) 'uri': uri,
+      if (displayName != null) 'display_name': displayName,
+      if (mimeType != null) 'mime_type': mimeType,
+      if (sizeBytes != null) 'size_bytes': sizeBytes,
+      if (dateModified != null) 'date_modified': dateModified,
+      if (relativePath != null) 'relative_path': relativePath,
+      if (contentFingerprint != null) 'content_fingerprint': contentFingerprint,
+      if (sourceRevision != null) 'source_revision': sourceRevision,
+      if (accessState != null) 'access_state': accessState,
+      if (firstDiscoveredAt != null) 'first_discovered_at': firstDiscoveredAt,
+      if (lastDiscoveredAt != null) 'last_discovered_at': lastDiscoveredAt,
+      if (searchableText != null) 'searchable_text': searchableText,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DocumentsCompanion copyWith({
+    Value<String>? stableKey,
+    Value<String>? treeUri,
+    Value<String>? documentId,
+    Value<String>? uri,
+    Value<String>? displayName,
+    Value<String?>? mimeType,
+    Value<int?>? sizeBytes,
+    Value<int?>? dateModified,
+    Value<String?>? relativePath,
+    Value<String>? contentFingerprint,
+    Value<int>? sourceRevision,
+    Value<DocumentAccessState>? accessState,
+    Value<int>? firstDiscoveredAt,
+    Value<int>? lastDiscoveredAt,
+    Value<String>? searchableText,
+    Value<int>? rowid,
+  }) {
+    return DocumentsCompanion(
+      stableKey: stableKey ?? this.stableKey,
+      treeUri: treeUri ?? this.treeUri,
+      documentId: documentId ?? this.documentId,
+      uri: uri ?? this.uri,
+      displayName: displayName ?? this.displayName,
+      mimeType: mimeType ?? this.mimeType,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      dateModified: dateModified ?? this.dateModified,
+      relativePath: relativePath ?? this.relativePath,
+      contentFingerprint: contentFingerprint ?? this.contentFingerprint,
+      sourceRevision: sourceRevision ?? this.sourceRevision,
+      accessState: accessState ?? this.accessState,
+      firstDiscoveredAt: firstDiscoveredAt ?? this.firstDiscoveredAt,
+      lastDiscoveredAt: lastDiscoveredAt ?? this.lastDiscoveredAt,
+      searchableText: searchableText ?? this.searchableText,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (stableKey.present) {
+      map['stable_key'] = Variable<String>(stableKey.value);
+    }
+    if (treeUri.present) {
+      map['tree_uri'] = Variable<String>(treeUri.value);
+    }
+    if (documentId.present) {
+      map['document_id'] = Variable<String>(documentId.value);
+    }
+    if (uri.present) {
+      map['uri'] = Variable<String>(uri.value);
+    }
+    if (displayName.present) {
+      map['display_name'] = Variable<String>(displayName.value);
+    }
+    if (mimeType.present) {
+      map['mime_type'] = Variable<String>(mimeType.value);
+    }
+    if (sizeBytes.present) {
+      map['size_bytes'] = Variable<int>(sizeBytes.value);
+    }
+    if (dateModified.present) {
+      map['date_modified'] = Variable<int>(dateModified.value);
+    }
+    if (relativePath.present) {
+      map['relative_path'] = Variable<String>(relativePath.value);
+    }
+    if (contentFingerprint.present) {
+      map['content_fingerprint'] = Variable<String>(contentFingerprint.value);
+    }
+    if (sourceRevision.present) {
+      map['source_revision'] = Variable<int>(sourceRevision.value);
+    }
+    if (accessState.present) {
+      map['access_state'] = Variable<String>(
+        $DocumentsTable.$converteraccessState.toSql(accessState.value),
+      );
+    }
+    if (firstDiscoveredAt.present) {
+      map['first_discovered_at'] = Variable<int>(firstDiscoveredAt.value);
+    }
+    if (lastDiscoveredAt.present) {
+      map['last_discovered_at'] = Variable<int>(lastDiscoveredAt.value);
+    }
+    if (searchableText.present) {
+      map['searchable_text'] = Variable<String>(searchableText.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DocumentsCompanion(')
+          ..write('stableKey: $stableKey, ')
+          ..write('treeUri: $treeUri, ')
+          ..write('documentId: $documentId, ')
+          ..write('uri: $uri, ')
+          ..write('displayName: $displayName, ')
+          ..write('mimeType: $mimeType, ')
+          ..write('sizeBytes: $sizeBytes, ')
+          ..write('dateModified: $dateModified, ')
+          ..write('relativePath: $relativePath, ')
+          ..write('contentFingerprint: $contentFingerprint, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('accessState: $accessState, ')
+          ..write('firstDiscoveredAt: $firstDiscoveredAt, ')
+          ..write('lastDiscoveredAt: $lastDiscoveredAt, ')
+          ..write('searchableText: $searchableText, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DocumentContentTable extends DocumentContent
+    with TableInfo<$DocumentContentTable, DocumentContentData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DocumentContentTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _documentStableKeyMeta = const VerificationMeta(
+    'documentStableKey',
+  );
+  @override
+  late final GeneratedColumn<String> documentStableKey =
+      GeneratedColumn<String>(
+        'document_stable_key',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      );
+  static const VerificationMeta _rawTextMeta = const VerificationMeta(
+    'rawText',
+  );
+  @override
+  late final GeneratedColumn<String> rawText = GeneratedColumn<String>(
+    'raw_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _normalizedTextMeta = const VerificationMeta(
+    'normalizedText',
+  );
+  @override
+  late final GeneratedColumn<String> normalizedText = GeneratedColumn<String>(
+    'normalized_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DocumentContentStatus, String>
+  status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<DocumentContentStatus>(
+        $DocumentContentTable.$converterstatus,
+      );
+  static const VerificationMeta _sourceRevisionMeta = const VerificationMeta(
+    'sourceRevision',
+  );
+  @override
+  late final GeneratedColumn<int> sourceRevision = GeneratedColumn<int>(
+    'source_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _truncatedMeta = const VerificationMeta(
+    'truncated',
+  );
+  @override
+  late final GeneratedColumn<bool> truncated = GeneratedColumn<bool>(
+    'truncated',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("truncated" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _errorCodeMeta = const VerificationMeta(
+    'errorCode',
+  );
+  @override
+  late final GeneratedColumn<String> errorCode = GeneratedColumn<String>(
+    'error_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    documentStableKey,
+    rawText,
+    normalizedText,
+    status,
+    sourceRevision,
+    truncated,
+    createdAt,
+    updatedAt,
+    errorCode,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'document_content';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DocumentContentData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('document_stable_key')) {
+      context.handle(
+        _documentStableKeyMeta,
+        documentStableKey.isAcceptableOrUnknown(
+          data['document_stable_key']!,
+          _documentStableKeyMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_documentStableKeyMeta);
+    }
+    if (data.containsKey('raw_text')) {
+      context.handle(
+        _rawTextMeta,
+        rawText.isAcceptableOrUnknown(data['raw_text']!, _rawTextMeta),
+      );
+    }
+    if (data.containsKey('normalized_text')) {
+      context.handle(
+        _normalizedTextMeta,
+        normalizedText.isAcceptableOrUnknown(
+          data['normalized_text']!,
+          _normalizedTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_revision')) {
+      context.handle(
+        _sourceRevisionMeta,
+        sourceRevision.isAcceptableOrUnknown(
+          data['source_revision']!,
+          _sourceRevisionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceRevisionMeta);
+    }
+    if (data.containsKey('truncated')) {
+      context.handle(
+        _truncatedMeta,
+        truncated.isAcceptableOrUnknown(data['truncated']!, _truncatedMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('error_code')) {
+      context.handle(
+        _errorCodeMeta,
+        errorCode.isAcceptableOrUnknown(data['error_code']!, _errorCodeMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {documentStableKey};
+  @override
+  DocumentContentData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DocumentContentData(
+      documentStableKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}document_stable_key'],
+      )!,
+      rawText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw_text'],
+      ),
+      normalizedText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_text'],
+      ),
+      status: $DocumentContentTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      sourceRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_revision'],
+      )!,
+      truncated: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}truncated'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      errorCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_code'],
+      ),
+    );
+  }
+
+  @override
+  $DocumentContentTable createAlias(String alias) {
+    return $DocumentContentTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<DocumentContentStatus, String> $converterstatus =
+      const DocumentContentStatusConverter();
+}
+
+class DocumentContentData extends DataClass
+    implements Insertable<DocumentContentData> {
+  final String documentStableKey;
+  final String? rawText;
+  final String? normalizedText;
+  final DocumentContentStatus status;
+  final int sourceRevision;
+  final bool truncated;
+  final int createdAt;
+  final int updatedAt;
+  final String? errorCode;
+  const DocumentContentData({
+    required this.documentStableKey,
+    this.rawText,
+    this.normalizedText,
+    required this.status,
+    required this.sourceRevision,
+    required this.truncated,
+    required this.createdAt,
+    required this.updatedAt,
+    this.errorCode,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['document_stable_key'] = Variable<String>(documentStableKey);
+    if (!nullToAbsent || rawText != null) {
+      map['raw_text'] = Variable<String>(rawText);
+    }
+    if (!nullToAbsent || normalizedText != null) {
+      map['normalized_text'] = Variable<String>(normalizedText);
+    }
+    {
+      map['status'] = Variable<String>(
+        $DocumentContentTable.$converterstatus.toSql(status),
+      );
+    }
+    map['source_revision'] = Variable<int>(sourceRevision);
+    map['truncated'] = Variable<bool>(truncated);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || errorCode != null) {
+      map['error_code'] = Variable<String>(errorCode);
+    }
+    return map;
+  }
+
+  DocumentContentCompanion toCompanion(bool nullToAbsent) {
+    return DocumentContentCompanion(
+      documentStableKey: Value(documentStableKey),
+      rawText: rawText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawText),
+      normalizedText: normalizedText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(normalizedText),
+      status: Value(status),
+      sourceRevision: Value(sourceRevision),
+      truncated: Value(truncated),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      errorCode: errorCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorCode),
+    );
+  }
+
+  factory DocumentContentData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DocumentContentData(
+      documentStableKey: serializer.fromJson<String>(json['documentStableKey']),
+      rawText: serializer.fromJson<String?>(json['rawText']),
+      normalizedText: serializer.fromJson<String?>(json['normalizedText']),
+      status: serializer.fromJson<DocumentContentStatus>(json['status']),
+      sourceRevision: serializer.fromJson<int>(json['sourceRevision']),
+      truncated: serializer.fromJson<bool>(json['truncated']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      errorCode: serializer.fromJson<String?>(json['errorCode']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'documentStableKey': serializer.toJson<String>(documentStableKey),
+      'rawText': serializer.toJson<String?>(rawText),
+      'normalizedText': serializer.toJson<String?>(normalizedText),
+      'status': serializer.toJson<DocumentContentStatus>(status),
+      'sourceRevision': serializer.toJson<int>(sourceRevision),
+      'truncated': serializer.toJson<bool>(truncated),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'errorCode': serializer.toJson<String?>(errorCode),
+    };
+  }
+
+  DocumentContentData copyWith({
+    String? documentStableKey,
+    Value<String?> rawText = const Value.absent(),
+    Value<String?> normalizedText = const Value.absent(),
+    DocumentContentStatus? status,
+    int? sourceRevision,
+    bool? truncated,
+    int? createdAt,
+    int? updatedAt,
+    Value<String?> errorCode = const Value.absent(),
+  }) => DocumentContentData(
+    documentStableKey: documentStableKey ?? this.documentStableKey,
+    rawText: rawText.present ? rawText.value : this.rawText,
+    normalizedText: normalizedText.present
+        ? normalizedText.value
+        : this.normalizedText,
+    status: status ?? this.status,
+    sourceRevision: sourceRevision ?? this.sourceRevision,
+    truncated: truncated ?? this.truncated,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    errorCode: errorCode.present ? errorCode.value : this.errorCode,
+  );
+  DocumentContentData copyWithCompanion(DocumentContentCompanion data) {
+    return DocumentContentData(
+      documentStableKey: data.documentStableKey.present
+          ? data.documentStableKey.value
+          : this.documentStableKey,
+      rawText: data.rawText.present ? data.rawText.value : this.rawText,
+      normalizedText: data.normalizedText.present
+          ? data.normalizedText.value
+          : this.normalizedText,
+      status: data.status.present ? data.status.value : this.status,
+      sourceRevision: data.sourceRevision.present
+          ? data.sourceRevision.value
+          : this.sourceRevision,
+      truncated: data.truncated.present ? data.truncated.value : this.truncated,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DocumentContentData(')
+          ..write('documentStableKey: $documentStableKey, ')
+          ..write('rawText: $rawText, ')
+          ..write('normalizedText: $normalizedText, ')
+          ..write('status: $status, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('truncated: $truncated, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('errorCode: $errorCode')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    documentStableKey,
+    rawText,
+    normalizedText,
+    status,
+    sourceRevision,
+    truncated,
+    createdAt,
+    updatedAt,
+    errorCode,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DocumentContentData &&
+          other.documentStableKey == this.documentStableKey &&
+          other.rawText == this.rawText &&
+          other.normalizedText == this.normalizedText &&
+          other.status == this.status &&
+          other.sourceRevision == this.sourceRevision &&
+          other.truncated == this.truncated &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.errorCode == this.errorCode);
+}
+
+class DocumentContentCompanion extends UpdateCompanion<DocumentContentData> {
+  final Value<String> documentStableKey;
+  final Value<String?> rawText;
+  final Value<String?> normalizedText;
+  final Value<DocumentContentStatus> status;
+  final Value<int> sourceRevision;
+  final Value<bool> truncated;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<String?> errorCode;
+  final Value<int> rowid;
+  const DocumentContentCompanion({
+    this.documentStableKey = const Value.absent(),
+    this.rawText = const Value.absent(),
+    this.normalizedText = const Value.absent(),
+    this.status = const Value.absent(),
+    this.sourceRevision = const Value.absent(),
+    this.truncated = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.errorCode = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DocumentContentCompanion.insert({
+    required String documentStableKey,
+    this.rawText = const Value.absent(),
+    this.normalizedText = const Value.absent(),
+    required DocumentContentStatus status,
+    required int sourceRevision,
+    this.truncated = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.errorCode = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : documentStableKey = Value(documentStableKey),
+       status = Value(status),
+       sourceRevision = Value(sourceRevision),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<DocumentContentData> custom({
+    Expression<String>? documentStableKey,
+    Expression<String>? rawText,
+    Expression<String>? normalizedText,
+    Expression<String>? status,
+    Expression<int>? sourceRevision,
+    Expression<bool>? truncated,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? errorCode,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (documentStableKey != null) 'document_stable_key': documentStableKey,
+      if (rawText != null) 'raw_text': rawText,
+      if (normalizedText != null) 'normalized_text': normalizedText,
+      if (status != null) 'status': status,
+      if (sourceRevision != null) 'source_revision': sourceRevision,
+      if (truncated != null) 'truncated': truncated,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (errorCode != null) 'error_code': errorCode,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DocumentContentCompanion copyWith({
+    Value<String>? documentStableKey,
+    Value<String?>? rawText,
+    Value<String?>? normalizedText,
+    Value<DocumentContentStatus>? status,
+    Value<int>? sourceRevision,
+    Value<bool>? truncated,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<String?>? errorCode,
+    Value<int>? rowid,
+  }) {
+    return DocumentContentCompanion(
+      documentStableKey: documentStableKey ?? this.documentStableKey,
+      rawText: rawText ?? this.rawText,
+      normalizedText: normalizedText ?? this.normalizedText,
+      status: status ?? this.status,
+      sourceRevision: sourceRevision ?? this.sourceRevision,
+      truncated: truncated ?? this.truncated,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      errorCode: errorCode ?? this.errorCode,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (documentStableKey.present) {
+      map['document_stable_key'] = Variable<String>(documentStableKey.value);
+    }
+    if (rawText.present) {
+      map['raw_text'] = Variable<String>(rawText.value);
+    }
+    if (normalizedText.present) {
+      map['normalized_text'] = Variable<String>(normalizedText.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $DocumentContentTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (sourceRevision.present) {
+      map['source_revision'] = Variable<int>(sourceRevision.value);
+    }
+    if (truncated.present) {
+      map['truncated'] = Variable<bool>(truncated.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (errorCode.present) {
+      map['error_code'] = Variable<String>(errorCode.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DocumentContentCompanion(')
+          ..write('documentStableKey: $documentStableKey, ')
+          ..write('rawText: $rawText, ')
+          ..write('normalizedText: $normalizedText, ')
+          ..write('status: $status, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('truncated: $truncated, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $MediaItemsTable mediaItems = $MediaItemsTable(this);
   late final $IndexStateTable indexState = $IndexStateTable(this);
   late final $OcrContentTable ocrContent = $OcrContentTable(this);
+  late final $SafGrantsTable safGrants = $SafGrantsTable(this);
+  late final $DocumentsTable documents = $DocumentsTable(this);
+  late final $DocumentContentTable documentContent = $DocumentContentTable(
+    this,
+  );
   late final Index idxMediaCategoryDateModified = Index(
     'idx_media_category_date_modified',
     'CREATE INDEX idx_media_category_date_modified ON media_items (category, date_modified)',
@@ -2893,6 +4852,26 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_media_last_discovered_at',
     'CREATE INDEX idx_media_last_discovered_at ON media_items (last_discovered_at)',
   );
+  late final Index idxSafGrantsAccessState = Index(
+    'idx_saf_grants_access_state',
+    'CREATE INDEX idx_saf_grants_access_state ON saf_grants (access_state)',
+  );
+  late final Index idxDocumentsTreeUri = Index(
+    'idx_documents_tree_uri',
+    'CREATE INDEX idx_documents_tree_uri ON documents (tree_uri)',
+  );
+  late final Index idxDocumentsAccessStable = Index(
+    'idx_documents_access_stable',
+    'CREATE INDEX idx_documents_access_stable ON documents (access_state, stable_key)',
+  );
+  late final Index idxDocumentsDateModified = Index(
+    'idx_documents_date_modified',
+    'CREATE INDEX idx_documents_date_modified ON documents (date_modified)',
+  );
+  late final Index idxDocumentContentStatusKey = Index(
+    'idx_document_content_status_key',
+    'CREATE INDEX idx_document_content_status_key ON document_content (status, document_stable_key)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2901,12 +4880,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     mediaItems,
     indexState,
     ocrContent,
+    safGrants,
+    documents,
+    documentContent,
     idxMediaCategoryDateModified,
     idxMediaVolumeMediaStoreId,
     idxMediaMimeType,
     idxMediaRelativePath,
     idxMediaScreenshotCategory,
     idxMediaLastDiscoveredAt,
+    idxSafGrantsAccessState,
+    idxDocumentsTreeUri,
+    idxDocumentsAccessStable,
+    idxDocumentsDateModified,
+    idxDocumentContentStatusKey,
   ];
 }
 
@@ -4178,6 +6165,965 @@ typedef $$OcrContentTableProcessedTableManager =
       OcrContentData,
       PrefetchHooks Function()
     >;
+typedef $$SafGrantsTableCreateCompanionBuilder = SafGrantsCompanion Function({
+  required String treeUri,
+  required String displayName,
+  required bool persisted,
+  required DocumentAccessState accessState,
+  required int lastSeenAt,
+  Value<int?> lastEnumeratedAt,
+  Value<int> rowid,
+});
+typedef $$SafGrantsTableUpdateCompanionBuilder = SafGrantsCompanion Function({
+  Value<String> treeUri,
+  Value<String> displayName,
+  Value<bool> persisted,
+  Value<DocumentAccessState> accessState,
+  Value<int> lastSeenAt,
+  Value<int?> lastEnumeratedAt,
+  Value<int> rowid,
+});
+
+class $$SafGrantsTableFilterComposer
+    extends Composer<_$AppDatabase, $SafGrantsTable> {
+  $$SafGrantsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get treeUri => $composableBuilder(
+    column: $table.treeUri,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get persisted => $composableBuilder(
+    column: $table.persisted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    DocumentAccessState,
+    DocumentAccessState,
+    String
+  >
+  get accessState => $composableBuilder(
+    column: $table.accessState,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get lastSeenAt => $composableBuilder(
+    column: $table.lastSeenAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastEnumeratedAt => $composableBuilder(
+    column: $table.lastEnumeratedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$SafGrantsTableOrderingComposer
+    extends Composer<_$AppDatabase, $SafGrantsTable> {
+  $$SafGrantsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get treeUri => $composableBuilder(
+    column: $table.treeUri,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get persisted => $composableBuilder(
+    column: $table.persisted,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accessState => $composableBuilder(
+    column: $table.accessState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastSeenAt => $composableBuilder(
+    column: $table.lastSeenAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastEnumeratedAt => $composableBuilder(
+    column: $table.lastEnumeratedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$SafGrantsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $SafGrantsTable> {
+  $$SafGrantsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get treeUri =>
+      $composableBuilder(column: $table.treeUri, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get persisted =>
+      $composableBuilder(column: $table.persisted, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DocumentAccessState, String>
+  get accessState => $composableBuilder(
+    column: $table.accessState,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastSeenAt => $composableBuilder(
+    column: $table.lastSeenAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastEnumeratedAt => $composableBuilder(
+    column: $table.lastEnumeratedAt,
+    builder: (column) => column,
+  );
+}
+
+class $$SafGrantsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $SafGrantsTable,
+          SafGrant,
+          $$SafGrantsTableFilterComposer,
+          $$SafGrantsTableOrderingComposer,
+          $$SafGrantsTableAnnotationComposer,
+          $$SafGrantsTableCreateCompanionBuilder,
+          $$SafGrantsTableUpdateCompanionBuilder,
+          (SafGrant, BaseReferences<_$AppDatabase, $SafGrantsTable, SafGrant>),
+          SafGrant,
+          PrefetchHooks Function()
+        > {
+  $$SafGrantsTableTableManager(_$AppDatabase db, $SafGrantsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$SafGrantsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$SafGrantsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$SafGrantsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> treeUri = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<bool> persisted = const Value.absent(),
+                Value<DocumentAccessState> accessState = const Value.absent(),
+                Value<int> lastSeenAt = const Value.absent(),
+                Value<int?> lastEnumeratedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SafGrantsCompanion(
+                treeUri: treeUri,
+                displayName: displayName,
+                persisted: persisted,
+                accessState: accessState,
+                lastSeenAt: lastSeenAt,
+                lastEnumeratedAt: lastEnumeratedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String treeUri,
+                required String displayName,
+                required bool persisted,
+                required DocumentAccessState accessState,
+                required int lastSeenAt,
+                Value<int?> lastEnumeratedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => SafGrantsCompanion.insert(
+                treeUri: treeUri,
+                displayName: displayName,
+                persisted: persisted,
+                accessState: accessState,
+                lastSeenAt: lastSeenAt,
+                lastEnumeratedAt: lastEnumeratedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$SafGrantsTable, SafGrant>(table),
+                  BaseReferences<_$AppDatabase, $SafGrantsTable, SafGrant>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$SafGrantsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $SafGrantsTable,
+      SafGrant,
+      $$SafGrantsTableFilterComposer,
+      $$SafGrantsTableOrderingComposer,
+      $$SafGrantsTableAnnotationComposer,
+      $$SafGrantsTableCreateCompanionBuilder,
+      $$SafGrantsTableUpdateCompanionBuilder,
+      (SafGrant, BaseReferences<_$AppDatabase, $SafGrantsTable, SafGrant>),
+      SafGrant,
+      PrefetchHooks Function()
+    >;
+typedef $$DocumentsTableCreateCompanionBuilder = DocumentsCompanion Function({
+  required String stableKey,
+  required String treeUri,
+  required String documentId,
+  required String uri,
+  required String displayName,
+  Value<String?> mimeType,
+  Value<int?> sizeBytes,
+  Value<int?> dateModified,
+  Value<String?> relativePath,
+  required String contentFingerprint,
+  required int sourceRevision,
+  required DocumentAccessState accessState,
+  required int firstDiscoveredAt,
+  required int lastDiscoveredAt,
+  Value<String> searchableText,
+  Value<int> rowid,
+});
+typedef $$DocumentsTableUpdateCompanionBuilder = DocumentsCompanion Function({
+  Value<String> stableKey,
+  Value<String> treeUri,
+  Value<String> documentId,
+  Value<String> uri,
+  Value<String> displayName,
+  Value<String?> mimeType,
+  Value<int?> sizeBytes,
+  Value<int?> dateModified,
+  Value<String?> relativePath,
+  Value<String> contentFingerprint,
+  Value<int> sourceRevision,
+  Value<DocumentAccessState> accessState,
+  Value<int> firstDiscoveredAt,
+  Value<int> lastDiscoveredAt,
+  Value<String> searchableText,
+  Value<int> rowid,
+});
+
+class $$DocumentsTableFilterComposer
+    extends Composer<_$AppDatabase, $DocumentsTable> {
+  $$DocumentsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get treeUri => $composableBuilder(
+    column: $table.treeUri,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get documentId => $composableBuilder(
+    column: $table.documentId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get uri => $composableBuilder(
+    column: $table.uri,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dateModified => $composableBuilder(
+    column: $table.dateModified,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get relativePath => $composableBuilder(
+    column: $table.relativePath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contentFingerprint => $composableBuilder(
+    column: $table.contentFingerprint,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    DocumentAccessState,
+    DocumentAccessState,
+    String
+  >
+  get accessState => $composableBuilder(
+    column: $table.accessState,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get firstDiscoveredAt => $composableBuilder(
+    column: $table.firstDiscoveredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastDiscoveredAt => $composableBuilder(
+    column: $table.lastDiscoveredAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get searchableText => $composableBuilder(
+    column: $table.searchableText,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DocumentsTableOrderingComposer
+    extends Composer<_$AppDatabase, $DocumentsTable> {
+  $$DocumentsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get treeUri => $composableBuilder(
+    column: $table.treeUri,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get documentId => $composableBuilder(
+    column: $table.documentId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get uri => $composableBuilder(
+    column: $table.uri,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get mimeType => $composableBuilder(
+    column: $table.mimeType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sizeBytes => $composableBuilder(
+    column: $table.sizeBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dateModified => $composableBuilder(
+    column: $table.dateModified,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get relativePath => $composableBuilder(
+    column: $table.relativePath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contentFingerprint => $composableBuilder(
+    column: $table.contentFingerprint,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get accessState => $composableBuilder(
+    column: $table.accessState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get firstDiscoveredAt => $composableBuilder(
+    column: $table.firstDiscoveredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastDiscoveredAt => $composableBuilder(
+    column: $table.lastDiscoveredAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get searchableText => $composableBuilder(
+    column: $table.searchableText,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DocumentsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DocumentsTable> {
+  $$DocumentsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get stableKey =>
+      $composableBuilder(column: $table.stableKey, builder: (column) => column);
+
+  GeneratedColumn<String> get treeUri =>
+      $composableBuilder(column: $table.treeUri, builder: (column) => column);
+
+  GeneratedColumn<String> get documentId => $composableBuilder(
+    column: $table.documentId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get uri =>
+      $composableBuilder(column: $table.uri, builder: (column) => column);
+
+  GeneratedColumn<String> get displayName => $composableBuilder(
+    column: $table.displayName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get mimeType =>
+      $composableBuilder(column: $table.mimeType, builder: (column) => column);
+
+  GeneratedColumn<int> get sizeBytes =>
+      $composableBuilder(column: $table.sizeBytes, builder: (column) => column);
+
+  GeneratedColumn<int> get dateModified => $composableBuilder(
+    column: $table.dateModified,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get relativePath => $composableBuilder(
+    column: $table.relativePath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get contentFingerprint => $composableBuilder(
+    column: $table.contentFingerprint,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<DocumentAccessState, String>
+  get accessState => $composableBuilder(
+    column: $table.accessState,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get firstDiscoveredAt => $composableBuilder(
+    column: $table.firstDiscoveredAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastDiscoveredAt => $composableBuilder(
+    column: $table.lastDiscoveredAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get searchableText => $composableBuilder(
+    column: $table.searchableText,
+    builder: (column) => column,
+  );
+}
+
+class $$DocumentsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DocumentsTable,
+          Document,
+          $$DocumentsTableFilterComposer,
+          $$DocumentsTableOrderingComposer,
+          $$DocumentsTableAnnotationComposer,
+          $$DocumentsTableCreateCompanionBuilder,
+          $$DocumentsTableUpdateCompanionBuilder,
+          (Document, BaseReferences<_$AppDatabase, $DocumentsTable, Document>),
+          Document,
+          PrefetchHooks Function()
+        > {
+  $$DocumentsTableTableManager(_$AppDatabase db, $DocumentsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DocumentsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DocumentsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DocumentsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> stableKey = const Value.absent(),
+                Value<String> treeUri = const Value.absent(),
+                Value<String> documentId = const Value.absent(),
+                Value<String> uri = const Value.absent(),
+                Value<String> displayName = const Value.absent(),
+                Value<String?> mimeType = const Value.absent(),
+                Value<int?> sizeBytes = const Value.absent(),
+                Value<int?> dateModified = const Value.absent(),
+                Value<String?> relativePath = const Value.absent(),
+                Value<String> contentFingerprint = const Value.absent(),
+                Value<int> sourceRevision = const Value.absent(),
+                Value<DocumentAccessState> accessState = const Value.absent(),
+                Value<int> firstDiscoveredAt = const Value.absent(),
+                Value<int> lastDiscoveredAt = const Value.absent(),
+                Value<String> searchableText = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DocumentsCompanion(
+                stableKey: stableKey,
+                treeUri: treeUri,
+                documentId: documentId,
+                uri: uri,
+                displayName: displayName,
+                mimeType: mimeType,
+                sizeBytes: sizeBytes,
+                dateModified: dateModified,
+                relativePath: relativePath,
+                contentFingerprint: contentFingerprint,
+                sourceRevision: sourceRevision,
+                accessState: accessState,
+                firstDiscoveredAt: firstDiscoveredAt,
+                lastDiscoveredAt: lastDiscoveredAt,
+                searchableText: searchableText,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String stableKey,
+                required String treeUri,
+                required String documentId,
+                required String uri,
+                required String displayName,
+                Value<String?> mimeType = const Value.absent(),
+                Value<int?> sizeBytes = const Value.absent(),
+                Value<int?> dateModified = const Value.absent(),
+                Value<String?> relativePath = const Value.absent(),
+                required String contentFingerprint,
+                required int sourceRevision,
+                required DocumentAccessState accessState,
+                required int firstDiscoveredAt,
+                required int lastDiscoveredAt,
+                Value<String> searchableText = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DocumentsCompanion.insert(
+                stableKey: stableKey,
+                treeUri: treeUri,
+                documentId: documentId,
+                uri: uri,
+                displayName: displayName,
+                mimeType: mimeType,
+                sizeBytes: sizeBytes,
+                dateModified: dateModified,
+                relativePath: relativePath,
+                contentFingerprint: contentFingerprint,
+                sourceRevision: sourceRevision,
+                accessState: accessState,
+                firstDiscoveredAt: firstDiscoveredAt,
+                lastDiscoveredAt: lastDiscoveredAt,
+                searchableText: searchableText,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DocumentsTable, Document>(table),
+                  BaseReferences<_$AppDatabase, $DocumentsTable, Document>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DocumentsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DocumentsTable,
+      Document,
+      $$DocumentsTableFilterComposer,
+      $$DocumentsTableOrderingComposer,
+      $$DocumentsTableAnnotationComposer,
+      $$DocumentsTableCreateCompanionBuilder,
+      $$DocumentsTableUpdateCompanionBuilder,
+      (Document, BaseReferences<_$AppDatabase, $DocumentsTable, Document>),
+      Document,
+      PrefetchHooks Function()
+    >;
+typedef $$DocumentContentTableCreateCompanionBuilder =
+    DocumentContentCompanion Function({
+      required String documentStableKey,
+      Value<String?> rawText,
+      Value<String?> normalizedText,
+      required DocumentContentStatus status,
+      required int sourceRevision,
+      Value<bool> truncated,
+      required int createdAt,
+      required int updatedAt,
+      Value<String?> errorCode,
+      Value<int> rowid,
+    });
+typedef $$DocumentContentTableUpdateCompanionBuilder =
+    DocumentContentCompanion Function({
+      Value<String> documentStableKey,
+      Value<String?> rawText,
+      Value<String?> normalizedText,
+      Value<DocumentContentStatus> status,
+      Value<int> sourceRevision,
+      Value<bool> truncated,
+      Value<int> createdAt,
+      Value<int> updatedAt,
+      Value<String?> errorCode,
+      Value<int> rowid,
+    });
+
+class $$DocumentContentTableFilterComposer
+    extends Composer<_$AppDatabase, $DocumentContentTable> {
+  $$DocumentContentTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get documentStableKey => $composableBuilder(
+    column: $table.documentStableKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawText => $composableBuilder(
+    column: $table.rawText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get normalizedText => $composableBuilder(
+    column: $table.normalizedText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    DocumentContentStatus,
+    DocumentContentStatus,
+    String
+  >
+  get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get truncated => $composableBuilder(
+    column: $table.truncated,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$DocumentContentTableOrderingComposer
+    extends Composer<_$AppDatabase, $DocumentContentTable> {
+  $$DocumentContentTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get documentStableKey => $composableBuilder(
+    column: $table.documentStableKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawText => $composableBuilder(
+    column: $table.rawText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get normalizedText => $composableBuilder(
+    column: $table.normalizedText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get truncated => $composableBuilder(
+    column: $table.truncated,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$DocumentContentTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DocumentContentTable> {
+  $$DocumentContentTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get documentStableKey => $composableBuilder(
+    column: $table.documentStableKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rawText =>
+      $composableBuilder(column: $table.rawText, builder: (column) => column);
+
+  GeneratedColumn<String> get normalizedText => $composableBuilder(
+    column: $table.normalizedText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<DocumentContentStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get truncated =>
+      $composableBuilder(column: $table.truncated, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get errorCode =>
+      $composableBuilder(column: $table.errorCode, builder: (column) => column);
+}
+
+class $$DocumentContentTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DocumentContentTable,
+          DocumentContentData,
+          $$DocumentContentTableFilterComposer,
+          $$DocumentContentTableOrderingComposer,
+          $$DocumentContentTableAnnotationComposer,
+          $$DocumentContentTableCreateCompanionBuilder,
+          $$DocumentContentTableUpdateCompanionBuilder,
+          (
+            DocumentContentData,
+            BaseReferences<
+              _$AppDatabase,
+              $DocumentContentTable,
+              DocumentContentData
+            >,
+          ),
+          DocumentContentData,
+          PrefetchHooks Function()
+        > {
+  $$DocumentContentTableTableManager(
+    _$AppDatabase db,
+    $DocumentContentTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DocumentContentTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DocumentContentTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DocumentContentTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> documentStableKey = const Value.absent(),
+                Value<String?> rawText = const Value.absent(),
+                Value<String?> normalizedText = const Value.absent(),
+                Value<DocumentContentStatus> status = const Value.absent(),
+                Value<int> sourceRevision = const Value.absent(),
+                Value<bool> truncated = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<String?> errorCode = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DocumentContentCompanion(
+                documentStableKey: documentStableKey,
+                rawText: rawText,
+                normalizedText: normalizedText,
+                status: status,
+                sourceRevision: sourceRevision,
+                truncated: truncated,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                errorCode: errorCode,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String documentStableKey,
+                Value<String?> rawText = const Value.absent(),
+                Value<String?> normalizedText = const Value.absent(),
+                required DocumentContentStatus status,
+                required int sourceRevision,
+                Value<bool> truncated = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+                Value<String?> errorCode = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DocumentContentCompanion.insert(
+                documentStableKey: documentStableKey,
+                rawText: rawText,
+                normalizedText: normalizedText,
+                status: status,
+                sourceRevision: sourceRevision,
+                truncated: truncated,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                errorCode: errorCode,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DocumentContentTable, DocumentContentData>(
+                    table,
+                  ),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $DocumentContentTable,
+                    DocumentContentData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$DocumentContentTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DocumentContentTable,
+      DocumentContentData,
+      $$DocumentContentTableFilterComposer,
+      $$DocumentContentTableOrderingComposer,
+      $$DocumentContentTableAnnotationComposer,
+      $$DocumentContentTableCreateCompanionBuilder,
+      $$DocumentContentTableUpdateCompanionBuilder,
+      (
+        DocumentContentData,
+        BaseReferences<
+          _$AppDatabase,
+          $DocumentContentTable,
+          DocumentContentData
+        >,
+      ),
+      DocumentContentData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4188,4 +7134,10 @@ class $AppDatabaseManager {
       $$IndexStateTableTableManager(_db, _db.indexState);
   $$OcrContentTableTableManager get ocrContent =>
       $$OcrContentTableTableManager(_db, _db.ocrContent);
+  $$SafGrantsTableTableManager get safGrants =>
+      $$SafGrantsTableTableManager(_db, _db.safGrants);
+  $$DocumentsTableTableManager get documents =>
+      $$DocumentsTableTableManager(_db, _db.documents);
+  $$DocumentContentTableTableManager get documentContent =>
+      $$DocumentContentTableTableManager(_db, _db.documentContent);
 }

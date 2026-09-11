@@ -577,6 +577,7 @@ class _SearchResultTile extends StatelessWidget {
     SearchField.album => 'album',
     SearchField.genre => 'genre',
     SearchField.ocrText => 'OCR text',
+    SearchField.documentText => 'document text',
   };
 
   static String _categoryLabel(ContentCategory category) => switch (category) {

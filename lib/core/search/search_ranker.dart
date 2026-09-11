@@ -5,21 +5,33 @@ import 'search_normalizer.dart';
 import 'search_query.dart';
 import 'search_result.dart';
 
-/// One candidate row entering the ranker: the persisted row plus any
-/// recognition text the retrieval stage found for it (nullable when the row
-/// was retrieved from metadata only, or has no OCR content yet).
+/// One candidate row entering the ranker: the persisted row (media item or
+/// document) plus any recognition/extracted text the retrieval stage found for it.
 class SearchCandidate {
-  const SearchCandidate({required this.item, this.ocrText});
+  const SearchCandidate({
+    this.item,
+    this.document,
+    this.ocrText,
+    this.documentText,
+  }) : assert(
+         item != null || document != null,
+         'Candidate must provide either an item or a document',
+       );
 
-  final MediaItem item;
+  final MediaItem? item;
+  final Document? document;
 
   /// Normalized OCR text (`ocr_content.normalized_text`), when this candidate
   /// came from OCR retrieval and was still current.
   final String? ocrText;
+
+  /// Normalized document text (`document_content.normalized_text`), when this
+  /// candidate came from document text retrieval.
+  final String? documentText;
 }
 
-/// Result of scoring one candidate (row + optional OCR text) against query
-/// tokens.
+/// Result of scoring one candidate (row + optional OCR/document text) against
+/// query tokens.
 class ScoredMatch {
   const ScoredMatch({required this.score, required this.matches});
 
@@ -44,16 +56,16 @@ class SearchScorer {
   ///   remember; "citizenship_front.jpg" should beat a path-only mention.
   /// * `title` — MediaStore titles are usually equal to or richer than the
   ///   name, but not universally present, so slightly below displayName.
-  /// * `ocrText` (between title and folder) — body text is a *content* signal:
-  ///   stronger than a folder mention, but an exact filename or title still
-  ///   wins. An exact OCR phrase surfaces (weight dominates a filename
-  ///   substring), while a generic OCR substring never outranks a clear name.
+  /// * `documentText` / `ocrText` (between title and folder) — body text is a
+  ///   *content* signal: stronger than a folder mention, but an exact filename
+  ///   or title still wins.
   /// * `relativePath` / `bucketDisplayName` — useful context, deliberately
   ///   weak: a token in a path should never outrank a filename substring.
   /// * `artist`/`album`/`albumArtist`/`genre` — music metadata, lowest tier.
   static const Map<SearchField, int> fieldWeight = {
     SearchField.displayName: 50,
     SearchField.title: 44,
+    SearchField.documentText: 22,
     SearchField.ocrText: 20,
     SearchField.relativePath: 12,
     SearchField.bucketDisplayName: 12,
@@ -87,6 +99,7 @@ class SearchScorer {
     String? albumArtist,
     String? genre,
     String? ocrText,
+    String? documentText,
     required List<String> tokens,
   }) {
     final fields = <SearchField, String?>{
@@ -99,6 +112,7 @@ class SearchScorer {
       SearchField.albumArtist: albumArtist,
       SearchField.genre: genre,
       SearchField.ocrText: ocrText,
+      SearchField.documentText: documentText,
     };
 
     var base = 0;
@@ -164,7 +178,35 @@ class SearchRanker {
   ) {
     final results = candidates
         .map((candidate) {
-          final row = candidate.item;
+          if (candidate.document != null) {
+            final doc = candidate.document!;
+            final scored = scorer.score(
+              displayName: doc.displayName,
+              relativePath: doc.relativePath,
+              documentText: candidate.documentText,
+              tokens: query.tokens,
+            );
+            return SearchResult(
+              stableKey: doc.stableKey,
+              contentUri: doc.uri,
+              displayName: doc.displayName,
+              category: ContentCategory.documents,
+              volumeName: null,
+              mediaStoreId: null,
+              title: null,
+              mimeType: doc.mimeType,
+              sizeBytes: doc.sizeBytes,
+              dateModified: doc.dateModified,
+              relativePath: doc.relativePath,
+              width: null,
+              height: null,
+              durationMs: null,
+              isScreenshot: false,
+              score: scored.score,
+              matches: scored.matches,
+            );
+          }
+          final row = candidate.item!;
           final scored = scorer.score(
             displayName: row.displayName,
             title: row.title,

@@ -12,8 +12,8 @@ class SearchResult {
     required this.contentUri,
     required this.displayName,
     required this.category,
-    required this.volumeName,
-    required this.mediaStoreId,
+    this.volumeName,
+    this.mediaStoreId,
     required this.title,
     required this.mimeType,
     required this.sizeBytes,
@@ -31,8 +31,8 @@ class SearchResult {
   final String contentUri;
   final String displayName;
   final ContentCategory category;
-  final String volumeName;
-  final int mediaStoreId;
+  final String? volumeName;
+  final int? mediaStoreId;
   final String? title;
   final String? mimeType;
   final int? sizeBytes;

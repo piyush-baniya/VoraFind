@@ -17,6 +17,9 @@ enum SearchField {
   /// Text recognized in an image body (OCR). Weighted between folder context
   /// and title by [SearchRanker] — see `docs/search.md` §Ranking.
   ocrText,
+
+  /// Text extracted from a local document body (PDF or plain text).
+  documentText,
 }
 
 /// How strongly one token matched one field value.

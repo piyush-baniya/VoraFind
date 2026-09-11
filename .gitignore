@@ -133,3 +133,14 @@ assets/
 # ============================================
 
 *.orig
+
+# ============================================
+# Test artefacts
+# ============================================
+
+# Ephemeral SQLite directories created by database migration tests
+# (Directory.current.createTempSync leaves these behind when a test run is
+# interrupted before the finally-block cleanup fires).
+vorafind_upgrade_test*/
+vorafind_v2_upgrade_test*/
+vorafind_db_test*/

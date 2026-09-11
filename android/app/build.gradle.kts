@@ -57,6 +57,10 @@ dependencies {
     // EXIF orientation for correct OCR of camera photos (auto-rotation needs
     // API 28+ ImageDecoder; using this keeps a single decode path on minSdk 24).
     implementation("androidx.exifinterface:exifinterface:1.4.1")
+
+    // Local, on-device PDF text extraction (Apache 2.0). 100% offline text layer
+    // extraction without cloud APIs or network calls.
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 }
 
 flutter {

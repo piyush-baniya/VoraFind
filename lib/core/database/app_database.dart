@@ -1,11 +1,20 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../documents/document_models.dart'
+    show
+        DocumentAccessState,
+        DocumentAccessStateConverter,
+        DocumentContentStatus,
+        DocumentContentStatusConverter;
 import '../ocr/ocr_models.dart' show OcrStatus, OcrStatusConverter;
 import '../search/search_normalizer.dart';
+import 'document_content_table.dart';
+import 'documents_table.dart';
 import 'index_state_table.dart';
 import 'media_items_table.dart';
 import 'ocr_content_table.dart';
+import 'saf_grants_table.dart';
 
 part 'app_database.g.dart';
 
@@ -19,10 +28,19 @@ part 'app_database.g.dart';
 /// for local metadata search (docs `search.md`). Schema v4 adds
 /// `ocr_content`, the on-device OCR text enrichment for images (docs
 /// `ocr.md`) and lifts the normalizer to Unicode-aware folding so that rows
-/// re-backfilled at v4 match OCR text the same way. Future tables
-/// (`text_index`, `image_features`, `video_segments`, `audio_transcripts`, …)
-/// are deliberately deferred (see `docs/persistence.md`).
-@DriftDatabase(tables: [MediaItems, IndexState, OcrContent])
+/// re-backfilled at v4 match OCR text the same way. Schema v5 adds SAF
+/// document tables (`saf_grants`, `documents`, `document_content`) so PDFs
+/// and plain-text files are indexed separately from MediaStore media.
+@DriftDatabase(
+  tables: [
+    MediaItems,
+    IndexState,
+    OcrContent,
+    SafGrants,
+    Documents,
+    DocumentContent,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -31,7 +49,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forApp() : super(driftDatabase(name: 'vorafind'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -52,6 +70,11 @@ class AppDatabase extends _$AppDatabase {
         // Unicode-aware folding, so existing rows must be re-normalized or
         // they would stop matching (Prompt #8 §20).
         await _backfillSearchableText();
+      }
+      if (from < 5) {
+        await m.createTable(safGrants);
+        await m.createTable(documents);
+        await m.createTable(documentContent);
       }
     },
   );
