@@ -132,6 +132,18 @@ class MediaItems extends Table {
   /// a future reconciler make that distinction.
   TextColumn get lastSeenAccessScope => text().nullable()();
 
+  /// Normalized, space-joined concatenation of the keyword-searchable metadata
+  /// (`Docs/search.md` §Retrieval vs. ranking).
+  ///
+  /// Populated by the mapper from `display_name`, `title`, `relative_path`,
+  /// `bucket_display_name`, `artist`, `album`, `album_artist`, and `genre`
+  /// through `SearchNormalizer.storageText`. Purely a *candidate retrieval*
+  /// projection: keyword matching runs on this single column (so SQLite scans
+  /// one column, not an OR across many), while per-field relevance is
+  /// recomputed by the ranker from the original columns. The value contains
+  /// only `[a-z0-9 ]` so substring matching is LIKE-wildcard-safe.
+  TextColumn get searchableText => text().withDefault(const Constant(''))();
+
   @override
   Set<Column<Object>> get primaryKey => {stableKey};
 }

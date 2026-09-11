@@ -3,8 +3,10 @@ import 'package:drift/drift.dart';
 import '../platform/content_access_models.dart' show ContentCategory;
 import '../platform/media_discovery_models.dart'
     show DiscoveryAccessScope, MediaDiscoveryRecord;
+import '../search/search_query.dart';
 import 'app_database.dart';
 import 'media_item_mapper.dart';
+import 'media_items_table.dart';
 
 /// Snapshot of the persisted media index.
 class MediaIndexStats {
@@ -148,6 +150,17 @@ abstract interface class MediaRepository {
   );
 
   Future<void> saveSyncCheckpoint(SyncCheckpoint checkpoint);
+
+  /// Retrieves the bounded candidate pool for a prepared search.
+  ///
+  /// SQLite performs as much filtering as practical (category, screenshot,
+  /// date/size/duration/path filters, keyword containment on the normalized
+  /// `searchable_text` column), then orders the pool by keyword coverage,
+  /// recency, and stable key before capping at
+  /// `SearchLimits.candidatePoolMultiple × limit`. The caller ranks this
+  /// bounded pool in Dart — never the whole index. Understands
+  /// `NormalizedSearchQuery` directly so the UI cannot bypass the service.
+  Future<List<MediaItem>> searchCandidates(NormalizedSearchQuery query);
 
   /// Clears the entire local media index. Explicitly requested only.
   Future<void> clearAll();
@@ -328,6 +341,129 @@ class DriftMediaRepository implements MediaRepository {
           ),
         )
         .toList(growable: false);
+  }
+
+  @override
+  Future<List<MediaItem>> searchCandidates(NormalizedSearchQuery query) async {
+    final t = _db.mediaItems;
+    final tokens = query.tokens;
+    final pool = _candidatePool(query);
+
+    final base = _db.select(t)
+      ..where(
+        (row) =>
+            _searchWhere(row, query) &
+            (tokens.isEmpty ? const Constant(true) : _keywordPredicate(tokens)),
+      )
+      ..limit(pool);
+
+    if (tokens.isNotEmpty) {
+      base.orderBy([
+        (row) => OrderingTerm.desc(_coverageExpression(tokens)),
+        (row) => OrderingTerm.desc(row.dateModified),
+        (row) => OrderingTerm.asc(row.stableKey),
+      ]);
+    } else {
+      base.orderBy([
+        (row) => OrderingTerm.desc(row.dateModified),
+        (row) => OrderingTerm.asc(row.stableKey),
+      ]);
+    }
+    return base.get();
+  }
+
+  /// Builds the structured filter conjunction for [query]. Never includes the
+  /// keyword predicate — the caller adds that so keyword/config stays clear.
+  Expression<bool> _searchWhere(MediaItems row, NormalizedSearchQuery query) {
+    Expression<bool> where = const Constant(true);
+
+    if (query.categories.isNotEmpty) {
+      final names = query.categories.map((category) => category.name);
+      where = where & row.category.isIn(names);
+    }
+    final screenshot = query.isScreenshot;
+    if (screenshot != null) {
+      where = where & row.isScreenshot.equals(screenshot);
+    }
+    final dateFrom = query.dateFrom;
+    if (dateFrom != null) {
+      where = where & row.dateModified.isBiggerOrEqualValue(dateFrom);
+    }
+    final dateTo = query.dateTo;
+    if (dateTo != null) {
+      where = where & row.dateModified.isSmallerOrEqualValue(dateTo);
+    }
+    final minSize = query.minSizeBytes;
+    if (minSize != null) {
+      where = where & row.sizeBytes.isBiggerOrEqualValue(minSize);
+    }
+    final maxSize = query.maxSizeBytes;
+    if (maxSize != null) {
+      where = where & row.sizeBytes.isSmallerOrEqualValue(maxSize);
+    }
+    final pathPrefix = query.pathPrefix;
+    if (pathPrefix != null && pathPrefix.isNotEmpty) {
+      where = where & _pathPrefixPredicate(row.relativePath, pathPrefix);
+    }
+    final minDuration = query.minDurationMs;
+    if (minDuration != null) {
+      where = where & row.durationMs.isBiggerOrEqualValue(minDuration);
+    }
+    final maxDuration = query.maxDurationMs;
+    if (maxDuration != null) {
+      where = where & row.durationMs.isSmallerOrEqualValue(maxDuration);
+    }
+    return where;
+  }
+
+  /// `searchable_text LIKE '%token%'` per token, OR-ed together.
+  ///
+  /// Safe without escaping: both the stored value and the tokens are
+  /// normalized to `[a-z0-9 ]` only (see `SearchNormalizer`), so `%`/`_` can
+  /// never act as wildcards on either side of the pattern.
+  Expression<bool> _keywordPredicate(List<String> tokens) {
+    return tokens
+        .map((token) => _db.mediaItems.searchableText.contains(token))
+        .reduce((a, b) => a | b);
+  }
+
+  /// Prefix match on `relative_path` (`'prefix%'`) with LIKE wildcards in the
+  /// user prefix escaped, so `_`/`%` in a folder name are literal. The
+  /// `idx_media_relative_path` index makes pure-prefix filters cheap.
+  Expression<bool> _pathPrefixPredicate(
+    Expression<String> column,
+    String prefix,
+  ) {
+    final escaped = prefix
+        .replaceAll(r'\', r'\\')
+        .replaceAll('%', r'\%')
+        .replaceAll('_', r'\_');
+    return column.like('$escaped%', escapeChar: r'\');
+  }
+
+  /// `(instr(searchable_text,'t1')>0)+(instr(searchable_text,'t2')>0)+…` used
+  /// to order the pool by how many distinct tokens a row contains — rows
+  /// matching more tokens reach the top of the bounded pool before Dart
+  /// re-ranks them.
+  ///
+  /// [tokens] are guaranteed alphanumeric by `SearchNormalizer`, so embedding
+  /// them literally is injection-safe (no quotes or wildcards possible).
+  Expression<int> _coverageExpression(List<String> tokens) {
+    final parts = tokens
+        .map((token) => "(instr(searchable_text, '$token') > 0)")
+        .join(' + ');
+    return CustomExpression<int>('($parts)');
+  }
+
+  /// Candidate pool: a bounded multiple of the result limit so the Dart ranker
+  /// has slack, capped absolutely. Filter-only searches need no slack — recency
+  /// ordering is final — so they use exactly the limit.
+  static int _candidatePool(NormalizedSearchQuery query) {
+    if (!query.hasKeyword) return query.limit;
+    final multiple = query.limit * SearchLimits.candidatePoolMultiple;
+    return multiple > SearchLimits.maxCandidatePool
+        ? SearchLimits.maxCandidatePool
+        : multiple;
   }
 
   @override

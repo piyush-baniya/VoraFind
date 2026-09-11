@@ -91,18 +91,20 @@ void main() {
     expect(result.accepted, isTrue);
   });
 
-  test('startDiscovery omits the volumes key when no filter is given', () async {
-    await mockChannel((call) => startResult());
+  test(
+    'startDiscovery omits the volumes key when no filter is given',
+    () async {
+      await mockChannel((call) => startResult());
 
-    await buildDiscovery().startDiscovery(
-      [ContentCategory.images],
-      volumes: const [],
-    );
+      await buildDiscovery().startDiscovery([
+        ContentCategory.images,
+      ], volumes: const []);
 
-    expect(calls.single.arguments, {
-      'categories': ['images'],
-    });
-  });
+      expect(calls.single.arguments, {
+        'categories': ['images'],
+      });
+    },
+  );
 
   test('getGeneration round-trips null and a real token', () async {
     await mockChannel(

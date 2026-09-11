@@ -3,7 +3,9 @@
 Status: **Implemented (Prompt #6) — Drift/SQLite `media_items` index,
 transactional batch upserts, persist-then-ACK orchestration, `index_state`
 checkpoints (schema v2), and a `SynchronizationCoordinator` that performs
-generation fast-checks and bounded deletion reconciliation.**
+generation fast-checks and bounded deletion reconciliation. Schema v3 (Prompt
+#7) adds the normalized `searchable_text` retrieval projection with a paged
+one-time backfill for pre-v3 rows.**
 
 Last updated: 2026-09-11
 
@@ -29,7 +31,7 @@ file bytes.
 - App database name: `vorafind` (native file-backed, `AppDatabase.forApp()`).
 - Tests use `NativeDatabase.memory()` — no platform channels involved.
 
-## 3. Schema — `media_items` + `index_state` (v2)
+## 3. Schema — `media_items` + `index_state` (v3)
 
 Row type `MediaItem`, generated into `app_database.g.dart`. One row per discovered
 file. Ordered fields:
@@ -55,6 +57,7 @@ file. Ordered fields:
 | `screenshot_score` | INT? | §17 heuristic score emitted by the scanner |
 | `is_screenshot` | INT? (bool) | default `false` |
 | `relink_signature` | TEXT? | SHA-256 from the scanner (see §5) — **stored verbatim, never recomputed** |
+| `searchable_text` | TEXT | **v3.** normalized keyword-retrieval projection (see `docs/search.md`); derived, durably maintained by the mapper, backfilled for pre-v3 rows |
 | `first_discovered_at` / `last_discovered_at` | INT | seconds epoch bookkeeping |
 | `last_indexed_generation` | INT? | `generationAfter` of the batch that last wrote the row |
 | `metadata_revision` | INT | bumped on every metadata-changing upsert |
@@ -203,23 +206,33 @@ as a provider, keeping the persistence seam obvious.
 
 ## 9. Migrations
 
-- `schemaVersion = 2`. `onCreate` builds both tables; `onUpgrade (from < 2)` adds
-  `index_state` (the only schema delta; `media_items` DDL is unchanged).
-- The authoritative schema snapshot is committed at
-  `drift_schemas/drift_schema_v1.json` and `drift_schemas/drift_schema_v2.json`
-  (generated via `dart run drift_dev schema dump lib/core/database/app_database.dart
-  drift_schemas/`).
-- Migration tests: fresh install asserts `PRAGMA user_version = 2` + full column sets;
-  an upgrade test crafts an in-place v1 database (`DROP TABLE index_state` +
-  `user_version = 1` + a `media_items` row), reopens, and asserts data survived,
-  `index_state` was created, and `user_version == 2`.
+- `schemaVersion = 3`. `onCreate` builds both tables. `onUpgrade`:
+  - `from < 2` — adds `index_state` (the only v1→v2 delta; `media_items` DDL is unchanged).
+  - `from < 3` — adds `media_items.searchable_text` and backfills existing rows
+    with a **paged** sweep (`stable_key` keyset, page size 500) so memory stays
+    bounded regardless of library size. Backfill never alters stored metadata,
+    only the derived projection; new/extracted rows take the same path via
+    `MediaItemMapper`, which maintains `searchable_text` durably on every write.
+- The authoritative schema snapshots are committed at
+  `drift_schemas/drift_schema_v1.json`, `drift_schema_v2.json`, and
+  `drift_schema_v3.json` (generated via `dart run drift_dev schema dump
+  lib/core/database/app_database.dart drift_schemas/`).
+- Migration tests: fresh install asserts `PRAGMA user_version = 3` + full column
+  set (incl. `searchable_text`); an upgrade test crafts an in-place v1 database
+  (`DROP TABLE index_state` + `DROP COLUMN searchable_text` + `user_version = 1`
+  + a `media_items` row), reopens, and asserts data survived, `index_state` was
+  created, `searchable_text` was backfilled, and `user_version == 3`. A second
+  upgrade test crafts an in-place v2 database (`DROP COLUMN searchable_text` +
+  `user_version = 2`, keeping `index_state`), reopens, and asserts backfill
+  fidelity for an audio row's full projection.
 
 ## 10. Out of Scope (deferred, do not implement)
 
 `volumes`/`index_errors`/`saf_grants` tables, document (SAF) ingestion, the
-N-pass deletion grace period, drift-watcher-based polling, search/FTS, OCR/text
-extraction, thumbnails, embeddings, scheduled/WorkManager indexing. The schema
-leaves room for these; none are built here.
+N-pass deletion grace period, drift-watcher-based polling, coverage of
+`searchable_text` beyond current fields (OCR/text extraction, captions, audio
+transcripts; see `docs/search.md`), thumbnails, embeddings, scheduled/WorkManager
+indexing. The schema leaves room for these; none are built here.
 
 ## 11. Privacy
 

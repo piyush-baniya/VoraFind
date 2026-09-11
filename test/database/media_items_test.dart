@@ -227,11 +227,11 @@ void main() {
       directory.deleteSync(recursive: true);
     });
 
-    test('migration creates the expected schema (v2)', () async {
+    test('migration creates the expected schema (v3)', () async {
       final userVersion = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(userVersion.data.values.single, 2);
+      expect(userVersion.data.values.single, 3);
       final mediaColumns = await db
           .customSelect('PRAGMA table_info(media_items)')
           .get()
@@ -270,6 +270,7 @@ void main() {
           'metadata_revision',
           'indexing_status',
           'last_seen_access_scope',
+          'searchable_text',
         }),
       );
       final stateColumns = await db
@@ -286,56 +287,143 @@ void main() {
       });
     });
 
-    test('upgrading a v1 database preserves data and adds index_state', () async {
-      final directory = Directory.current.createTempSync(
-        'vorafind_upgrade_test',
-      );
-      final path = '${directory.path}${Platform.pathSeparator}v1.sqlite';
+    test(
+      'upgrading a v1 database preserves data and reaches schema v3',
+      () async {
+        final directory = Directory.current.createTempSync(
+          'vorafind_upgrade_test',
+        );
+        final path = '${directory.path}${Platform.pathSeparator}v1.sqlite';
 
-      try {
-        // Craft a genuine v1 database in-place: create the physical schema
-        // (v1 and v2 `media_items` DDL are identical), then remove the v2-only
-        // `index_state` table and roll `user_version` back to 1 so reopening
-        // must execute the real v1→v2 upgrade path.
-        final v1 = AppDatabase(NativeDatabase(File(path)));
-        await v1.customStatement('DROP TABLE IF EXISTS index_state;');
-        await v1.customStatement('PRAGMA user_version = 1;');
-        await v1
-            .into(v1.mediaItems)
-            .insert(
-              MediaItemsCompanion(
-                stableKey: const Value('external_primary:9'),
-                category: const Value('images'),
-                volumeName: const Value('external_primary'),
-                mediaStoreId: const Value(9),
-                contentUri: const Value(
-                  'content://media/external/images/media/9',
+        try {
+          // Craft a genuine v1 database in-place: create the physical schema,
+          // then remove the v2/v3 extras (`index_state`, `searchable_text`)
+          // and roll `user_version` back to 1 so reopening must execute the
+          // real v1→v3 upgrade path (recreate checkpoint table, add the
+          // retrieval column, backfill it from the surviving row).
+          final v1 = AppDatabase(NativeDatabase(File(path)));
+          await v1
+              .into(v1.mediaItems)
+              .insert(
+                MediaItemsCompanion(
+                  stableKey: const Value('external_primary:9'),
+                  category: const Value('images'),
+                  volumeName: const Value('external_primary'),
+                  mediaStoreId: const Value(9),
+                  contentUri: const Value(
+                    'content://media/external/images/media/9',
+                  ),
+                  displayName: const Value('kept.jpg'),
+                  firstDiscoveredAt: const Value(1),
+                  lastDiscoveredAt: const Value(2),
+                  metadataRevision: const Value(3),
+                  indexingStatus: const Value(IndexingStatus.none),
                 ),
-                displayName: const Value('kept.jpg'),
-                firstDiscoveredAt: const Value(1),
-                lastDiscoveredAt: const Value(2),
-                metadataRevision: const Value(3),
-                indexingStatus: const Value(IndexingStatus.none),
-              ),
-            );
-        await v1.close();
+              );
+          await v1.customStatement(
+            'ALTER TABLE media_items DROP COLUMN searchable_text;',
+          );
+          await v1.customStatement('DROP TABLE IF EXISTS index_state;');
+          await v1.customStatement('PRAGMA user_version = 1;');
+          await v1.close();
 
-        final upgraded = AppDatabase(NativeDatabase(File(path)));
-        // The v1 row survived the upgrade untouched.
-        final row = await upgraded.select(upgraded.mediaItems).getSingle();
-        expect(row.stableKey, 'external_primary:9');
-        expect(row.displayName, 'kept.jpg');
-        expect(row.metadataRevision, 3);
-        // The checkpoint table exists and is empty.
-        final versionAfter = await upgraded
-            .customSelect('PRAGMA user_version')
-            .getSingle();
-        expect(versionAfter.data.values.single, 2);
-        expect(await upgraded.select(upgraded.indexState).get(), isEmpty);
-        await upgraded.close();
-      } finally {
-        directory.deleteSync(recursive: true);
-      }
-    });
+          final upgraded = AppDatabase(NativeDatabase(File(path)));
+          // The v1 row survived the upgrade untouched.
+          final row = await upgraded.select(upgraded.mediaItems).getSingle();
+          expect(row.stableKey, 'external_primary:9');
+          expect(row.displayName, 'kept.jpg');
+          expect(row.metadataRevision, 3);
+          // The checkpoint table exists and is empty.
+          final versionAfter = await upgraded
+              .customSelect('PRAGMA user_version')
+              .getSingle();
+          expect(versionAfter.data.values.single, 3);
+          expect(await upgraded.select(upgraded.indexState).get(), isEmpty);
+          // The v3 backfill made the legacy row searchable.
+          expect(row.searchableText, 'kept jpg');
+          await upgraded.close();
+        } finally {
+          directory.deleteSync(recursive: true);
+        }
+      },
+    );
+
+    test(
+      'upgrading a v2 database preserves data and backfills searchable_text',
+      () async {
+        final directory = Directory.current.createTempSync(
+          'vorafind_v2_upgrade_test',
+        );
+        final path = '${directory.path}${Platform.pathSeparator}v2.sqlite';
+        AppDatabase? upgraded;
+
+        try {
+          // Create a v3 database, then make it a genuine v2 one: drop the
+          // searchable_text column and roll user_version back to 2 so reopening
+          // must execute the real v2→v3 upgrade path (add column + backfill).
+          final v2 = AppDatabase(NativeDatabase(File(path)));
+          await v2
+              .into(v2.mediaItems)
+              .insert(
+                MediaItemsCompanion(
+                  stableKey: const Value('external_primary:11'),
+                  category: const Value('audio'),
+                  volumeName: const Value('external_primary'),
+                  mediaStoreId: const Value(11),
+                  contentUri: const Value(
+                    'content://media/external/audio/media/11',
+                  ),
+                  displayName: const Value('Artist - Summer 2024.mp3'),
+                  title: const Value('Summer 2024'),
+                  artist: const Value('Example Artist'),
+                  album: const Value('Holiday Mix'),
+                  firstDiscoveredAt: const Value(1),
+                  lastDiscoveredAt: const Value(2),
+                  metadataRevision: const Value(1),
+                  indexingStatus: const Value(IndexingStatus.none),
+                ),
+              );
+          await v2.customStatement(
+            'ALTER TABLE media_items DROP COLUMN searchable_text;',
+          );
+          await v2.customStatement('PRAGMA user_version = 2;');
+          await v2.close();
+
+          upgraded = AppDatabase(NativeDatabase(File(path)));
+          final row = await upgraded.select(upgraded.mediaItems).getSingle();
+          expect(row.stableKey, 'external_primary:11');
+          expect(row.displayName, 'Artist - Summer 2024.mp3');
+          expect(
+            row.searchableText,
+            'artist summer 2024 mp3 summer 2024 example artist holiday mix',
+          );
+          expect(await upgraded.select(upgraded.indexState).get(), isEmpty);
+          expect(
+            (await upgraded.customSelect('PRAGMA user_version').getSingle())
+                .data
+                .values
+                .single,
+            3,
+          );
+          await upgraded.close();
+        } finally {
+          // Best-effort close + retry delete so a still-open DB handle never
+          // masks the underlying test failure with a PathAccessException.
+          try {
+            await upgraded?.close();
+          } catch (_) {}
+          var attempts = 0;
+          while (true) {
+            try {
+              directory.deleteSync(recursive: true);
+              break;
+            } on FileSystemException {
+              if (attempts++ > 50) rethrow;
+              await Future<void>.delayed(const Duration(milliseconds: 100));
+            }
+          }
+        }
+      },
+    );
   });
 }

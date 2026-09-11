@@ -339,6 +339,18 @@ class $MediaItemsTable extends MediaItems
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _searchableTextMeta = const VerificationMeta(
+    'searchableText',
+  );
+  @override
+  late final GeneratedColumn<String> searchableText = GeneratedColumn<String>(
+    'searchable_text',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     stableKey,
@@ -372,6 +384,7 @@ class $MediaItemsTable extends MediaItems
     metadataRevision,
     indexingStatus,
     lastSeenAccessScope,
+    searchableText,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -628,6 +641,15 @@ class $MediaItemsTable extends MediaItems
         ),
       );
     }
+    if (data.containsKey('searchable_text')) {
+      context.handle(
+        _searchableTextMeta,
+        searchableText.isAcceptableOrUnknown(
+          data['searchable_text']!,
+          _searchableTextMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -763,6 +785,10 @@ class $MediaItemsTable extends MediaItems
         DriftSqlType.string,
         data['${effectivePrefix}last_seen_access_scope'],
       ),
+      searchableText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}searchable_text'],
+      )!,
     );
   }
 
@@ -847,6 +873,18 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
   /// returns a row must NOT be treated as deletion — this column is what lets
   /// a future reconciler make that distinction.
   final String? lastSeenAccessScope;
+
+  /// Normalized, space-joined concatenation of the keyword-searchable metadata
+  /// (`Docs/search.md` §Retrieval vs. ranking).
+  ///
+  /// Populated by the mapper from `display_name`, `title`, `relative_path`,
+  /// `bucket_display_name`, `artist`, `album`, `album_artist`, and `genre`
+  /// through `SearchNormalizer.storageText`. Purely a *candidate retrieval*
+  /// projection: keyword matching runs on this single column (so SQLite scans
+  /// one column, not an OR across many), while per-field relevance is
+  /// recomputed by the ranker from the original columns. The value contains
+  /// only `[a-z0-9 ]` so substring matching is LIKE-wildcard-safe.
+  final String searchableText;
   const MediaItem({
     required this.stableKey,
     required this.category,
@@ -879,6 +917,7 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
     required this.metadataRevision,
     required this.indexingStatus,
     this.lastSeenAccessScope,
+    required this.searchableText,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -960,6 +999,7 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
     if (!nullToAbsent || lastSeenAccessScope != null) {
       map['last_seen_access_scope'] = Variable<String>(lastSeenAccessScope);
     }
+    map['searchable_text'] = Variable<String>(searchableText);
     return map;
   }
 
@@ -1038,6 +1078,7 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
       lastSeenAccessScope: lastSeenAccessScope == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSeenAccessScope),
+      searchableText: Value(searchableText),
     );
   }
 
@@ -1086,6 +1127,7 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
       lastSeenAccessScope: serializer.fromJson<String?>(
         json['lastSeenAccessScope'],
       ),
+      searchableText: serializer.fromJson<String>(json['searchableText']),
     );
   }
   @override
@@ -1125,6 +1167,7 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
         $MediaItemsTable.$converterindexingStatus.toJson(indexingStatus),
       ),
       'lastSeenAccessScope': serializer.toJson<String?>(lastSeenAccessScope),
+      'searchableText': serializer.toJson<String>(searchableText),
     };
   }
 
@@ -1160,6 +1203,7 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
     int? metadataRevision,
     IndexingStatus? indexingStatus,
     Value<String?> lastSeenAccessScope = const Value.absent(),
+    String? searchableText,
   }) => MediaItem(
     stableKey: stableKey ?? this.stableKey,
     category: category ?? this.category,
@@ -1202,6 +1246,7 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
     lastSeenAccessScope: lastSeenAccessScope.present
         ? lastSeenAccessScope.value
         : this.lastSeenAccessScope,
+    searchableText: searchableText ?? this.searchableText,
   );
   MediaItem copyWithCompanion(MediaItemsCompanion data) {
     return MediaItem(
@@ -1276,6 +1321,9 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
       lastSeenAccessScope: data.lastSeenAccessScope.present
           ? data.lastSeenAccessScope.value
           : this.lastSeenAccessScope,
+      searchableText: data.searchableText.present
+          ? data.searchableText.value
+          : this.searchableText,
     );
   }
 
@@ -1312,7 +1360,8 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
           ..write('lastIndexedGeneration: $lastIndexedGeneration, ')
           ..write('metadataRevision: $metadataRevision, ')
           ..write('indexingStatus: $indexingStatus, ')
-          ..write('lastSeenAccessScope: $lastSeenAccessScope')
+          ..write('lastSeenAccessScope: $lastSeenAccessScope, ')
+          ..write('searchableText: $searchableText')
           ..write(')'))
         .toString();
   }
@@ -1350,6 +1399,7 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
     metadataRevision,
     indexingStatus,
     lastSeenAccessScope,
+    searchableText,
   ]);
   @override
   bool operator ==(Object other) =>
@@ -1385,7 +1435,8 @@ class MediaItem extends DataClass implements Insertable<MediaItem> {
           other.lastIndexedGeneration == this.lastIndexedGeneration &&
           other.metadataRevision == this.metadataRevision &&
           other.indexingStatus == this.indexingStatus &&
-          other.lastSeenAccessScope == this.lastSeenAccessScope);
+          other.lastSeenAccessScope == this.lastSeenAccessScope &&
+          other.searchableText == this.searchableText);
 }
 
 class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
@@ -1420,6 +1471,7 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
   final Value<int> metadataRevision;
   final Value<IndexingStatus> indexingStatus;
   final Value<String?> lastSeenAccessScope;
+  final Value<String> searchableText;
   final Value<int> rowid;
   const MediaItemsCompanion({
     this.stableKey = const Value.absent(),
@@ -1453,6 +1505,7 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
     this.metadataRevision = const Value.absent(),
     this.indexingStatus = const Value.absent(),
     this.lastSeenAccessScope = const Value.absent(),
+    this.searchableText = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   MediaItemsCompanion.insert({
@@ -1487,6 +1540,7 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
     required int metadataRevision,
     required IndexingStatus indexingStatus,
     this.lastSeenAccessScope = const Value.absent(),
+    this.searchableText = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : stableKey = Value(stableKey),
        category = Value(category),
@@ -1530,6 +1584,7 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
     Expression<int>? metadataRevision,
     Expression<String>? indexingStatus,
     Expression<String>? lastSeenAccessScope,
+    Expression<String>? searchableText,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1566,6 +1621,7 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
       if (indexingStatus != null) 'indexing_status': indexingStatus,
       if (lastSeenAccessScope != null)
         'last_seen_access_scope': lastSeenAccessScope,
+      if (searchableText != null) 'searchable_text': searchableText,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1602,6 +1658,7 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
     Value<int>? metadataRevision,
     Value<IndexingStatus>? indexingStatus,
     Value<String?>? lastSeenAccessScope,
+    Value<String>? searchableText,
     Value<int>? rowid,
   }) {
     return MediaItemsCompanion(
@@ -1637,6 +1694,7 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
       metadataRevision: metadataRevision ?? this.metadataRevision,
       indexingStatus: indexingStatus ?? this.indexingStatus,
       lastSeenAccessScope: lastSeenAccessScope ?? this.lastSeenAccessScope,
+      searchableText: searchableText ?? this.searchableText,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1743,6 +1801,9 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
         lastSeenAccessScope.value,
       );
     }
+    if (searchableText.present) {
+      map['searchable_text'] = Variable<String>(searchableText.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1783,6 +1844,7 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
           ..write('metadataRevision: $metadataRevision, ')
           ..write('indexingStatus: $indexingStatus, ')
           ..write('lastSeenAccessScope: $lastSeenAccessScope, ')
+          ..write('searchableText: $searchableText, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2320,6 +2382,7 @@ typedef $$MediaItemsTableCreateCompanionBuilder = MediaItemsCompanion Function({
   required int metadataRevision,
   required IndexingStatus indexingStatus,
   Value<String?> lastSeenAccessScope,
+  Value<String> searchableText,
   Value<int> rowid,
 });
 typedef $$MediaItemsTableUpdateCompanionBuilder = MediaItemsCompanion Function({
@@ -2354,6 +2417,7 @@ typedef $$MediaItemsTableUpdateCompanionBuilder = MediaItemsCompanion Function({
   Value<int> metadataRevision,
   Value<IndexingStatus> indexingStatus,
   Value<String?> lastSeenAccessScope,
+  Value<String> searchableText,
   Value<int> rowid,
 });
 
@@ -2521,6 +2585,11 @@ class $$MediaItemsTableFilterComposer
     column: $table.lastSeenAccessScope,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get searchableText => $composableBuilder(
+    column: $table.searchableText,
+    builder: (column) => ColumnFilters(column),
+  );
 }
 
 class $$MediaItemsTableOrderingComposer
@@ -2686,6 +2755,11 @@ class $$MediaItemsTableOrderingComposer
     column: $table.lastSeenAccessScope,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get searchableText => $composableBuilder(
+    column: $table.searchableText,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$MediaItemsTableAnnotationComposer
@@ -2830,6 +2904,11 @@ class $$MediaItemsTableAnnotationComposer
     column: $table.lastSeenAccessScope,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get searchableText => $composableBuilder(
+    column: $table.searchableText,
+    builder: (column) => column,
+  );
 }
 
 class $$MediaItemsTableTableManager
@@ -2894,6 +2973,7 @@ class $$MediaItemsTableTableManager
                 Value<int> metadataRevision = const Value.absent(),
                 Value<IndexingStatus> indexingStatus = const Value.absent(),
                 Value<String?> lastSeenAccessScope = const Value.absent(),
+                Value<String> searchableText = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MediaItemsCompanion(
                 stableKey: stableKey,
@@ -2927,6 +3007,7 @@ class $$MediaItemsTableTableManager
                 metadataRevision: metadataRevision,
                 indexingStatus: indexingStatus,
                 lastSeenAccessScope: lastSeenAccessScope,
+                searchableText: searchableText,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2962,6 +3043,7 @@ class $$MediaItemsTableTableManager
                 required int metadataRevision,
                 required IndexingStatus indexingStatus,
                 Value<String?> lastSeenAccessScope = const Value.absent(),
+                Value<String> searchableText = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => MediaItemsCompanion.insert(
                 stableKey: stableKey,
@@ -2995,6 +3077,7 @@ class $$MediaItemsTableTableManager
                 metadataRevision: metadataRevision,
                 indexingStatus: indexingStatus,
                 lastSeenAccessScope: lastSeenAccessScope,
+                searchableText: searchableText,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

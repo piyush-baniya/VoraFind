@@ -8,6 +8,7 @@ import 'package:vorafind/core/database/synchronization_coordinator.dart'
     show SyncUnitKind;
 import 'package:vorafind/core/platform/content_access_models.dart';
 import 'package:vorafind/core/platform/media_discovery_models.dart';
+import 'package:vorafind/core/search/search_query.dart';
 
 import 'test_support.dart';
 
@@ -375,7 +376,280 @@ void main() {
       expect(second!.lastGeneration, 2);
     });
   });
+
+  group('DriftMediaRepository.searchCandidates', () {
+    late AppDatabase db;
+    late DriftMediaRepository repository;
+
+    setUp(() {
+      db = inMemoryDb();
+      repository = DriftMediaRepository(db);
+    });
+
+    tearDown(() async {
+      await db.close();
+    });
+
+    Future<void> seed(MediaDiscoveryRecord record) =>
+        repository.upsert(record, nowSeconds: record.dateModified ?? 1000);
+
+    test(
+      'matches keywords case-insensitively across the searchable text',
+      () async {
+        await seed(buildRecord(id: 1, displayName: 'Citizenship_Front.JPG'));
+        await seed(buildRecord(id: 2, displayName: 'family_vacation.jpg'));
+
+        final results = await repository.searchCandidates(
+          _query(tokens: ['citizenship']),
+        );
+        expect(results.map((r) => r.stableKey), ['external_primary:1']);
+      },
+    );
+
+    test('matches title and artist metadata, not only filenames', () async {
+      await seed(buildAudioRecord(id: 10));
+      final byTitle = await repository.searchCandidates(
+        _query(tokens: ['holiday', 'artist']),
+      );
+      // buildAudioRecord has title 'Song title', artist 'The Artist',
+      // album 'The Album', plus default relativePath/bucket names.
+      expect(byTitle.map((r) => r.stableKey), contains('external_primary:10'));
+    });
+
+    test(
+      'multi-token keyword search is an OR and coverage order dominates',
+      () async {
+        await seed(
+          buildRecord(
+            id: 1,
+            displayName: 'flutter_notes_v1.pdf',
+            category: ContentCategory.documents,
+            relativePath: 'Documents/Notes/',
+          ),
+        );
+        await seed(
+          buildRecord(
+            id: 2,
+            displayName: 'flutter_error_screenshot.png',
+            isScreenshot: true,
+          ),
+        );
+        await seed(buildRecord(id: 3, displayName: 'family.jpg'));
+
+        final results = await repository.searchCandidates(
+          _query(tokens: ['flutter', 'notes']),
+        );
+        expect(
+          results.map((r) => r.stableKey),
+          containsAll(['external_primary:1', 'external_primary:2']),
+        );
+        // Row 1 covers both tokens (flutter + notes); row 2 only one.
+        expect(results.first.stableKey, 'external_primary:1');
+      },
+    );
+
+    test('category filter narrows keyword results', () async {
+      await seed(buildRecord(id: 1, displayName: 'trip.jpg'));
+      await seed(buildAudioRecord(id: 2));
+      await seed(
+        buildRecord(
+          id: 3,
+          displayName: 'trip.mp4',
+          category: ContentCategory.videos,
+        ),
+      );
+
+      final results = await repository.searchCandidates(
+        _query(tokens: ['trip'], categories: [ContentCategory.images]),
+      );
+      expect(results.single.stableKey, 'external_primary:1');
+    });
+
+    test('screenshot filter is respected', () async {
+      await seed(
+        buildRecord(id: 1, displayName: 'screen.png', isScreenshot: true),
+      );
+      await seed(
+        buildRecord(id: 2, displayName: 'screen.png', isScreenshot: false),
+      );
+
+      final results = await repository.searchCandidates(
+        _query(tokens: ['screen'], isScreenshot: true),
+      );
+      expect(results.single.stableKey, 'external_primary:1');
+    });
+
+    test('date, size and duration ranges filter rows', () async {
+      await seed(
+        buildRecord(
+          id: 1,
+          displayName: 'old.jpg',
+          dateModified: 100,
+          sizeBytes: 1000,
+        ),
+      );
+      await seed(
+        buildRecord(
+          id: 2,
+          displayName: 'new.jpg',
+          dateModified: 500,
+          sizeBytes: 5000,
+          durationMs: 90_000,
+          category: ContentCategory.videos,
+        ),
+      );
+
+      final dated = await repository.searchCandidates(
+        _query(dateFrom: 300, tokens: []),
+      );
+      expect(dated.single.stableKey, 'external_primary:2');
+
+      final sized = await repository.searchCandidates(
+        _query(tokens: ['jpg'], minSizeBytes: 2000),
+      );
+      expect(sized.single.stableKey, 'external_primary:2');
+
+      final timed = await repository.searchCandidates(
+        _query(tokens: [], minDurationMs: 60_000, maxDurationMs: 120_000),
+      );
+      expect(timed.map((r) => r.stableKey), contains('external_primary:2'));
+    });
+
+    test(
+      'path prefix matches folder names with LIKE wildcards as literals',
+      () async {
+        await seed(
+          buildRecord(
+            id: 1,
+            displayName: 'doc.pdf',
+            relativePath: '100%_Done/Reports/',
+          ),
+        );
+        await seed(
+          buildRecord(
+            id: 2,
+            displayName: 'doc.pdf',
+            relativePath: 'Done/Reports/',
+          ),
+        );
+
+        // '%' and '_' are literal in the user's prefix, not wildcards.
+        final withWildcards = await repository.searchCandidates(
+          _query(tokens: ['doc'], pathPrefix: '100%_Done'),
+        );
+        expect(withWildcards.single.stableKey, 'external_primary:1');
+
+        final plain = await repository.searchCandidates(
+          _query(tokens: ['doc'], pathPrefix: 'Done'),
+        );
+        expect(plain.single.stableKey, 'external_primary:2');
+      },
+    );
+
+    test(
+      'filter-only search returns the limit directly in recency order',
+      () async {
+        for (var id = 1; id <= 5; id++) {
+          await seed(buildRecord(id: id, dateModified: 100 + id));
+        }
+        final results = await repository.searchCandidates(
+          _query(tokens: const [], limit: 3),
+        );
+        expect(results, hasLength(3));
+        // Most recently modified first.
+        expect(results.first.stableKey, 'external_primary:5');
+      },
+    );
+
+    test(
+      'keyword search pool is bounded by limit times multiple, capped',
+      () async {
+        for (var id = 1; id <= 100; id++) {
+          await seed(buildRecord(id: id, displayName: 'hit_$id.jpg'));
+        }
+        final results = await repository.searchCandidates(
+          _query(tokens: ['hit'], limit: 10),
+        );
+        // min(10 * 4, 400) — never the whole index.
+        expect(results, hasLength(40));
+      },
+    );
+
+    test('no matches returns an empty list', () async {
+      await seed(buildRecord(id: 1, displayName: 'family.jpg'));
+      final results = await repository.searchCandidates(
+        _query(tokens: ['zebra']),
+      );
+      expect(results, isEmpty);
+    });
+
+    test('only committed rows are visible to search', () async {
+      await expectLater(
+        db.transaction(() async {
+          await db
+              .into(db.mediaItems)
+              .insert(
+                MediaItemsCompanion(
+                  stableKey: const Value('external_primary:99'),
+                  category: const Value('images'),
+                  volumeName: const Value('external_primary'),
+                  mediaStoreId: const Value(99),
+                  contentUri: const Value(
+                    'content://media/external_primary/images/media/99',
+                  ),
+                  displayName: const Value('rollback.jpg'),
+                  firstDiscoveredAt: const Value(1),
+                  lastDiscoveredAt: const Value(1),
+                  metadataRevision: const Value(1),
+                  indexingStatus: const Value(IndexingStatus.none),
+                ),
+              );
+          throw _RollbackNow();
+        }),
+        throwsA(isA<_RollbackNow>()),
+      );
+
+      final before = await repository.searchCandidates(
+        _query(tokens: ['rollback']),
+      );
+      expect(before, isEmpty);
+
+      await repository.upsert(buildRecord(id: 99, displayName: 'rollback.jpg'));
+      final after = await repository.searchCandidates(
+        _query(tokens: ['rollback']),
+      );
+      expect(after.single.stableKey, 'external_primary:99');
+    });
+  });
 }
+
+class _RollbackNow implements Exception {}
+
+NormalizedSearchQuery _query({
+  List<String> tokens = const [],
+  List<ContentCategory> categories = const [],
+  bool? isScreenshot,
+  int? dateFrom,
+  int? dateTo,
+  int? minSizeBytes,
+  int? maxSizeBytes,
+  String? pathPrefix,
+  int? minDurationMs,
+  int? maxDurationMs,
+  int limit = 50,
+}) => NormalizedSearchQuery(
+  tokens: tokens,
+  categories: categories,
+  isScreenshot: isScreenshot,
+  dateFrom: dateFrom,
+  dateTo: dateTo,
+  minSizeBytes: minSizeBytes,
+  maxSizeBytes: maxSizeBytes,
+  pathPrefix: pathPrefix,
+  minDurationMs: minDurationMs,
+  maxDurationMs: maxDurationMs,
+  limit: limit,
+);
 
 class _MapperThrown implements Exception {}
 

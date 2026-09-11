@@ -7,8 +7,10 @@ identity/re-link signature), §11 (bounded batched, ack-gated delivery), §13
 as `media_items` (see `docs/persistence.md`, Prompt #5). Incremental
 synchronization (Prompt #6) is implemented: generation fast-checks skip unchanged
 units and a full-scope rescan reconciles deletions over
-`index_state` checkpoints (see §9 and `docs/persistence.md`). Search, OCR, and
-scheduled/resumable indexing remain unimplemented.**
+`index_state` checkpoints (see §9 and `docs/persistence.md`). Local metadata
+search (Prompt #7) is implemented as keyword + filter search over the
+`searchable_text` projection with deterministic ranking (see `docs/search.md`).
+OCR, semantic search, and scheduled/resumable indexing remain unimplemented.**
 
 > Concrete implementation details, the exact channel contract, projections,
 > selection gating, and the record schema live in **`docs/android-discovery.md`**.

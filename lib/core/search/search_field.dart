@@ -1,0 +1,51 @@
+/// A metadata field a keyword can match against.
+///
+/// The order of declaration is not significance — relevance comes from
+/// `SearchRanker.fieldWeight` — but this enum is the single vocabulary for
+/// *where* a term matched, used by [MatchInfo] and the future "why this
+/// matches" UI.
+enum SearchField {
+  displayName,
+  title,
+  relativePath,
+  bucketDisplayName,
+  artist,
+  album,
+  albumArtist,
+  genre,
+}
+
+/// How strongly one token matched one field value.
+enum MatchStrength {
+  /// The token equals a whole normalized word of the field value.
+  exact,
+
+  /// The token is a prefix of a normalized word of the field value.
+  prefix,
+
+  /// The token appears as a substring of a normalized word (strongest partial
+  /// match we accept; no fuzzy/free-wildcard matching).
+  substring,
+}
+
+/// One `(field, token, strength)` match for a result.
+///
+/// Minimal and deterministic on purpose: the future UI can render
+///
+/// ```text
+/// Matched filename: flutter, error
+/// ```
+///
+/// straight from these entries without a second query or a redesign of
+/// [SearchResult].
+class MatchInfo {
+  const MatchInfo({
+    required this.field,
+    required this.token,
+    required this.strength,
+  });
+
+  final SearchField field;
+  final String token;
+  final MatchStrength strength;
+}

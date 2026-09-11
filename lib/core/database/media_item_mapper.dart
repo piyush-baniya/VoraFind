@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 import '../platform/media_discovery_models.dart'
     show DiscoveryAccessScope, MediaDiscoveryRecord;
+import '../search/search_normalizer.dart';
 import 'app_database.dart';
 import 'media_items_table.dart';
 
@@ -54,6 +55,7 @@ class MediaItemMapper {
     metadataRevision: const Value(1),
     indexingStatus: const Value(IndexingStatus.none),
     lastSeenAccessScope: Value<String?>(accessScope?.name),
+    searchableText: Value(_searchableText(record)),
   );
 
   /// The `DO UPDATE SET` arm for an existing row.
@@ -97,6 +99,7 @@ class MediaItemMapper {
     lastIndexedGeneration: _nullable<int>(generationAfter),
     metadataRevision: existing.metadataRevision + const Constant(1),
     lastSeenAccessScope: _nullable<String>(accessScope?.name),
+    searchableText: Constant(_searchableText(record)),
   );
 
   /// True when the persisted [existing] row carries discovery content
@@ -132,4 +135,17 @@ class MediaItemMapper {
 
   /// A nullable SQL expression; null becomes a bound NULL parameter.
   Expression<T> _nullable<T extends Object>(T? value) => Variable<T>(value);
+
+  /// The normalized retrieval projection for [record] — the single input the
+  /// search candidate query substring-matches against (see
+  /// `docs/search.md`). Ranker-friendly, never recomputed from derived data.
+  static String _searchableText(MediaDiscoveryRecord record) =>
+      SearchNormalizer.storageText([
+        record.displayName,
+        record.title,
+        record.relativePath,
+        record.bucketDisplayName,
+        record.artist,
+        record.album,
+      ]);
 }
