@@ -6,7 +6,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:vorafind/app/app.dart';
 import 'package:vorafind/core/constants/app_info.dart';
 import 'package:vorafind/core/database/app_database.dart';
+import 'package:vorafind/core/database/media_repository.dart';
 import 'package:vorafind/core/database/providers.dart';
+import 'package:vorafind/core/database/synchronization_coordinator.dart';
+import 'package:vorafind/core/documents/document_coordinator.dart';
+import 'package:vorafind/core/documents/document_models.dart';
+import 'package:vorafind/core/indexing/indexing_coordinator.dart';
+import 'package:vorafind/core/indexing/indexing_providers.dart';
+import 'package:vorafind/core/ocr/ocr_coordinator.dart';
+import 'package:vorafind/core/ocr/ocr_models.dart';
+import 'package:vorafind/core/platform/content_access_models.dart';
 
 void main() {
   Future<ProviderContainer> newContainer() async {
@@ -14,7 +23,15 @@ void main() {
     addTearDown(database.close);
 
     final container = ProviderContainer(
-      overrides: [databaseProvider.overrideWithValue(database)],
+      overrides: [
+        databaseProvider.overrideWithValue(database),
+        // Hermetic widget tests: platform-channel futures never complete in
+        // the FakeAsync test environment, so a real pipeline would leave the
+        // status spinner pumping forever and time out pumpAndSettle. The
+        // pipeline itself is covered by
+        // test/indexing/indexing_coordinator_test.dart.
+        indexingCoordinatorProvider.overrideWith((ref) => _IdlePipeline()),
+      ],
     );
     addTearDown(container.dispose);
     return container;
@@ -76,4 +93,39 @@ void main() {
 
     expect(find.text('No files matched'), findsOneWidget);
   });
+}
+
+/// Media-sync stage that concludes instantly without touching channels.
+class _NoSync implements IndexingMediaSync {
+  const _NoSync();
+
+  @override
+  Future<SyncSessionResult> run(List<ContentCategory> categories) async =>
+      const SyncSessionResult(outcome: SyncSessionOutcome.completed, units: []);
+
+  @override
+  Future<void> cancel() async {}
+}
+
+/// Inert pipeline: never starts, never emits. Widget tests exercise only UI
+/// states; the pipeline itself is covered by
+/// test/indexing/indexing_coordinator_test.dart and platform-channel futures
+/// never complete inside the FakeAsync widget-test environment.
+class _IdlePipeline extends IndexingCoordinator {
+  _IdlePipeline()
+      : super(
+          mediaSync: const _NoSync(),
+          runDocuments: () async =>
+              const DocumentRunSummary(status: DocumentRunStatus.completed),
+          cancelDocuments: () {},
+          documentProgress: const Stream<DocumentRunProgress>.empty(),
+          runOcr: () async => const OcrRunSummary(status: OcrRunStatus.completed),
+          cancelOcr: () {},
+          ocrProgress: const Stream<OcrRunProgress>.empty(),
+          mediaStats: () async =>
+              const MediaIndexStats(total: 0, byCategory: {}, volumeCount: 0),
+        );
+
+  @override
+  Future<IndexingStatus> start() async => const IndexingStatus.idle();
 }

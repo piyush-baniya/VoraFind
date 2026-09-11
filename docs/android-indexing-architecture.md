@@ -12,7 +12,9 @@ search (Prompt #7) is implemented as keyword + filter search over the
 `searchable_text` projection with deterministic ranking (see `docs/search.md`).
 On-device OCR extraction (Prompt #8) is implemented over images as a Dart-driven,
 Kotlin-recognized pipeline with durable outcomes in `ocr_content` (see
-`docs/ocr.md`); it is decoupled from discovery (§16). Semantic search and
+`docs/ocr.md`); it is decoupled from discovery (§16). Prompt #10 adds the unified
+indexing lifecycle and status UX (§27) plus document-type/time-word search
+interpretation. Semantic search and
 scheduled/resumable background indexing remain unimplemented.**
 
 > Concrete implementation details, the exact channel contract, projections,
@@ -807,6 +809,73 @@ Guarantees this architecture gives us:
    duplicate detection, cross-device (stays local-first), power-user all-files mode.
 
 Nothing in Phases 2–5 is implemented by the change that produces this document.
+
+---
+
+## 27. Unified Indexing Lifecycle (Prompt #10)
+
+The three enrichment surfaces — MediaStore synchronization
+(`SynchronizationCoordinator`), SAF document extraction
+(`DocumentCoordinator`), and OCR (`OcrCoordinator`) — report through **one**
+high-level status abstraction: `IndexingCoordinator`
+(`lib/core/indexing/`, Prompt #10). There are no competing indexing systems;
+each existing coordinator keeps its own durable state machine and this layer
+only composes them.
+
+### 27.1 Phases
+
+`IndexingPhase`: `idle → preparing → discovering → persisting → enriching →
+completed`, with terminal `cancelled` / `failed` states. A run:
+
+1. **preparing** — pipeline started (post-frame on first launch, then on every
+   `AppLifecycleListener.onResume`; the coordinator is single-flight so both
+   triggers coexist).
+2. **discovering/persisting** — `SynchronizationCoordinator.run` over
+   images/videos/audio. Counts come from the real
+   `SyncSessionResult` (inserted + updated); the media total comes from
+   `MediaRepository.stats()` — never a fabricated denominator.
+3. **enriching** — `DocumentCoordinator.start()` drains the extraction queue,
+   then `OcrCoordinator.start()` drains the OCR queue, both reporting live
+   `processed/total` snapshots through their existing progress streams.
+4. **completed / cancelled / failed** — terminal snapshot preserves the last
+   progress counts so "1,250 / 3,100 analyzed" stays honest. `failed` carries a
+   short user-safe message (never stack traces or user content).
+
+### 27.2 Lifecycle policy
+
+- **Foreground-driven** (AGENTS.md §22): a run starts when the app reaches the
+  foreground and is cancelled when it hides. Nothing schedules background work
+  in this phase.
+- **Cancellation** is cooperative at stage boundaries: media sync is cancelled
+  through `SynchronizationCoordinator.cancel()` (added in Prompt #10), which
+  stops the active discovery session without writing checkpoints for
+  incomplete units; completed work stays valid. The pipeline reports
+  `cancelled`, and the UI offers **Resume**.
+- **Failure isolation**: per-file failures never reach the pipeline layer —
+  sub-coordinators persist durable `failed`/`unsupported`/`empty` rows and
+  retry after their cooldowns. Only stage-level failures (no access, database
+  error, stage exception) conclude the run as `failed`, and the UI offers
+  **Retry**.
+- **Resume** simply runs the pipeline again: unchanged units are skipped by
+  generation fast-checks, already-extracted documents/OCR rows are not
+  reprocessed, so a resume never restarts everything.
+
+### 27.3 UI contract
+
+The Home screen renders exactly one compact status area
+(`_IndexingStatusTile`) driven by `indexingStatusProvider`:
+`Indexing your files… / Saving index… N files updated / Analyzing ·
+screenshots p/t · documents p/t / Everything is indexed / Indexing paused /
+Indexing couldn't finish` with a Resume/Retry text action where meaningful.
+No giant dashboard; no redesign; dark AMOLED Material 3 with the minimal
+violet accent.
+
+### 27.4 Diagnostics
+
+All diagnostic values stay local (no analytics, no transport): media total
+(`MediaRepository.stats()`), OCR state (`MediaRepository.ocrStats()`),
+document state (`DocumentRepository.stats()`), and the current phase/counts in
+`IndexingStatus.lastStatus`.
 
 ---
 

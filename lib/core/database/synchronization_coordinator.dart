@@ -160,6 +160,25 @@ class SynchronizationCoordinator {
   _UnitPlan? _active;
   late List<_UnitPlan> _plans;
 
+  /// True while a discovery session is attached and running — the window in
+  /// which [cancel] can stop a scan. Cancel is cooperative: the native engine
+  /// reports a `cancelled` terminal event, the active unit is finalized as
+  /// `cancelled` (no checkpoint, reconciliation discarded), and completed work
+  /// from earlier units stays valid.
+  bool _sessionActive = false;
+
+  /// Requests cancellation of the currently running session. Idempotent and
+  /// safe to call when no session is running (it does nothing).
+  Future<void> cancel() async {
+    if (!_sessionActive) return;
+    try {
+      await discovery.cancelDiscovery();
+    } catch (_) {
+      // The session will conclude on its own; the consumer finalizes units
+      // from terminal events either way.
+    }
+  }
+
   /// Synchronizes [categories] across every external MediaStore volume.
   ///
   /// The engine is driven with one session per category and only the volumes
@@ -255,6 +274,7 @@ class SynchronizationCoordinator {
 
     var sessionCancelled = false;
     var sessionFailed = false;
+    _sessionActive = true;
     for (final entry in scanByCategory.entries) {
       final category = entry.key;
       final scanUnits = entry.value;
@@ -321,6 +341,7 @@ class SynchronizationCoordinator {
       }
     }
 
+    _sessionActive = false;
     return _finish(_outcomeFor(sessionCancelled, sessionFailed));
   }
 

@@ -17,10 +17,18 @@ import 'search_result.dart';
 /// sources (OCR text, semantic/vector) can plug in below this class without a
 /// rewrite.
 class SearchService {
-  const SearchService({required this.repository, this.documentRepository});
+  const SearchService({
+    required this.repository,
+    this.documentRepository,
+    this.nowSeconds,
+  });
 
   final MediaRepository repository;
   final DocumentRepository? documentRepository;
+
+  /// Injectable clock (epoch seconds) used to resolve time words like
+  /// "recent"/"this month" deterministically. Null → time words stay keywords.
+  final int Function()? nowSeconds;
 
   /// Runs [query] against the local index and returns at most
   /// `query.limit` (bounded by [SearchLimits]) ranked results.
@@ -52,8 +60,19 @@ class SearchService {
     try {
       final docRepo = documentRepository;
       final includeDocs = docRepo != null && _mayIncludeDocuments(prepared);
+      // A pinned document type ("find pdfs") excludes MediaStore rows by
+      // definition — skip media retrieval entirely instead of filtering rows.
+      final pinnedDocumentTypes = prepared.documentTypes.isNotEmpty;
 
       if (!prepared.hasKeyword) {
+        if (pinnedDocumentTypes) {
+          final docs = includeDocs
+              ? await docRepo.searchDocumentCandidates(prepared)
+              : const <DocumentSearchMatch>[];
+          return [
+            for (final match in docs) SearchCandidate(document: match.document),
+          ];
+        }
         final mediaFuture = repository.searchCandidates(prepared);
         final docFuture = includeDocs
             ? docRepo.searchDocumentCandidates(prepared)
@@ -66,8 +85,12 @@ class SearchService {
         ];
       }
 
-      final mediaFuture = repository.searchCandidates(prepared);
-      final ocrFuture = repository.searchOcrCandidates(prepared);
+      final mediaFuture = pinnedDocumentTypes
+          ? Future.value(const <MediaItem>[])
+          : repository.searchCandidates(prepared);
+      final ocrFuture = pinnedDocumentTypes
+          ? Future.value(const <OcrSearchMatch>[])
+          : repository.searchOcrCandidates(prepared);
       final docMetaFuture = includeDocs
           ? docRepo.searchDocumentCandidates(prepared)
           : Future.value(const <DocumentSearchMatch>[]);
@@ -95,8 +118,10 @@ class SearchService {
 
   static bool _mayIncludeDocuments(NormalizedSearchQuery query) {
     if (query.isScreenshot == true) return false;
-    if (query.minDurationMs != null || query.maxDurationMs != null)
+    if (query.minDurationMs != null || query.maxDurationMs != null) {
       return false;
+    }
+    if (query.documentTypes.isNotEmpty) return true;
     if (query.categories.isEmpty) return true;
     return query.categories.any((c) => c.name == 'documents');
   }
@@ -162,14 +187,32 @@ class SearchService {
 
     final explicitCategories =
         query.categories != null && query.categories!.isNotEmpty;
-    final interpretation = SearchQueryInterpreter.interpret(rawTokens);
+    final now = nowSeconds?.call();
+    final interpretation = SearchQueryInterpreter.interpret(
+      rawTokens,
+      nowEpochSeconds: now,
+    );
     final categories = explicitCategories
         ? List<ContentCategory>.of(query.categories!)
         : interpretation.categories;
     final isScreenshot = query.isScreenshot ?? interpretation.isScreenshot;
 
-    final dateFrom = query.dateFrom;
-    final dateTo = query.dateTo;
+    // Screenshot queries never include documents, so a pinned document type
+    // would silently produce zero results — drop the type pins instead.
+    final interpretedDocumentTypes = isScreenshot == true
+        ? const <SearchDocumentType>{}
+        : interpretation.documentTypes;
+    final documentTypes =
+        (query.documentTypes != null && query.documentTypes!.isNotEmpty)
+        ? Set<SearchDocumentType>.of(query.documentTypes!)
+        : interpretedDocumentTypes;
+
+    // Time words apply only where no explicit date filter pins the range.
+    final explicitDateRange = query.dateFrom != null || query.dateTo != null;
+    final dateFrom = explicitDateRange
+        ? query.dateFrom
+        : interpretation.dateFrom;
+    final dateTo = explicitDateRange ? query.dateTo : interpretation.dateTo;
     if (dateFrom != null && dateFrom < 0) {
       throw const SearchException.invalidQuery();
     }
@@ -225,6 +268,7 @@ class SearchService {
       pathPrefix: effectivePathPrefix,
       minDurationMs: minDurationMs,
       maxDurationMs: maxDurationMs,
+      documentTypes: documentTypes,
       limit: limit,
     );
   }

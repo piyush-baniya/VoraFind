@@ -231,6 +231,11 @@ SynchronizationCoordinator (Dart)
   chunked `DELETE … IN` batches only for rows the scan has already passed.
 - Everything runs off the existing method-channel bridge (`startDiscovery` with a
   `volumes` filter, `getGeneration`); no new permissions, no new dependencies.
+- Prompt #10 adds `SynchronizationCoordinator.cancel()`: an explicit cooperative
+  stop of the active discovery session (used by `IndexingCoordinator` when the app
+  hides). Cancelled units finalize as `cancelled` — reconciliation is discarded and
+  no checkpoint is written, so the last good full snapshot stays authoritative and
+  a later resume never restarts unchanged units.
 
 ## 8. Riverpod
 

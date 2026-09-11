@@ -18,6 +18,26 @@ abstract final class SearchLimits {
   static const int maxCandidatePool = 400;
 }
 
+/// A document body type a query can pin documents to.
+///
+/// Mapped from natural words ("pdf", "txt", "markdown") by the interpreter and
+/// resolved against `documents.mime_type` in the document repository. Media
+/// (MediaStore) candidates are excluded entirely when a type is pinned —
+/// "find pdfs" must never return photos.
+enum SearchDocumentType {
+  pdf,
+  text,
+  markdown;
+
+  /// MIME values that satisfy this type. A document matches when its MIME is
+  /// in this set (markdown accepts both common wire spellings).
+  List<String> get mimeTypes => switch (this) {
+    SearchDocumentType.pdf => const ['application/pdf'],
+    SearchDocumentType.text => const ['text/plain'],
+    SearchDocumentType.markdown => const ['text/markdown', 'text/x-markdown'],
+  };
+}
+
 /// A user-facing search request.
 ///
 /// `text` is the raw (un-normalized) query. Filters are typed and applied in
@@ -40,6 +60,7 @@ class SearchQuery {
     this.pathPrefix,
     this.minDurationMs,
     this.maxDurationMs,
+    this.documentTypes,
     this.limit,
   });
 
@@ -71,6 +92,12 @@ class SearchQuery {
   final int? minDurationMs;
   final int? maxDurationMs;
 
+  /// Explicit document body-type filter (PDF / plain text / markdown). When
+  /// non-empty only indexed documents with a matching MIME are considered and
+  /// media candidates are excluded. Takes precedence over type words
+  /// interpreted from [text].
+  final Set<SearchDocumentType>? documentTypes;
+
   /// Result limit; null → [SearchLimits.defaultLimit]. Clamped to
   /// `[1, SearchLimits.maxLimit]` by the search service.
   final int? limit;
@@ -88,7 +115,8 @@ class SearchQuery {
       maxSizeBytes != null ||
       pathPrefix != null ||
       minDurationMs != null ||
-      maxDurationMs != null;
+      maxDurationMs != null ||
+      (documentTypes != null && documentTypes!.isNotEmpty);
 }
 
 /// The prepared, validated search request after normalization and
@@ -108,6 +136,7 @@ class NormalizedSearchQuery {
     required this.pathPrefix,
     required this.minDurationMs,
     required this.maxDurationMs,
+    this.documentTypes = const {},
     required this.limit,
   });
 
@@ -132,6 +161,9 @@ class NormalizedSearchQuery {
   final int? minDurationMs;
   final int? maxDurationMs;
 
+  /// Effective document body-type filter; empty means "all documents".
+  final Set<SearchDocumentType> documentTypes;
+
   /// Validated, bounded result limit.
   final int limit;
 
@@ -148,5 +180,6 @@ class NormalizedSearchQuery {
       maxSizeBytes != null ||
       pathPrefix != null ||
       minDurationMs != null ||
-      maxDurationMs != null;
+      maxDurationMs != null ||
+      documentTypes.isNotEmpty;
 }

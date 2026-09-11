@@ -559,6 +559,7 @@ class DriftDocumentRepository implements DocumentRepository {
     if (query.minDurationMs != null || query.maxDurationMs != null) {
       return false;
     }
+    if (query.documentTypes.isNotEmpty) return true;
     if (query.categories.isEmpty) return true;
     return query.categories.any((category) => category.name == 'documents');
   }
@@ -580,6 +581,11 @@ class DriftDocumentRepository implements DocumentRepository {
     final maxSize = query.maxSizeBytes;
     if (maxSize != null) {
       where = where & t.sizeBytes.isSmallerOrEqualValue(maxSize);
+    }
+    final documentTypes = query.documentTypes;
+    if (documentTypes.isNotEmpty) {
+      final mimes = [for (final type in documentTypes) ...type.mimeTypes];
+      where = where & t.mimeType.isIn(mimes);
     }
     final pathPrefix = query.pathPrefix;
     if (pathPrefix != null && pathPrefix.isNotEmpty) {

@@ -101,8 +101,22 @@ as keywords (AGENTS.md §14/§17 — no hidden magic):
 | `image`, `images`, `photo`, `photos`, `picture`, `pictures` | `categories += images`, dropped |
 | `video`, `videos` | `categories += videos`, dropped |
 | `audio`, `song`, `songs`, `music`, `mp3` | `categories += audio`, dropped |
+| `document`, `documents`, `doc`, `docs` | `categories += documents`, dropped |
+| `pdf`, `pdfs` | `documentTypes += pdf` (Prompt #10), dropped |
+| `text`, `txt` | `documentTypes += text`, dropped |
+| `markdown`, `md` | `documentTypes += markdown`, dropped |
+| `today` / `yesterday` | `dateFrom`/`dateTo` pinned to the local day (needs a clock) |
+| `this week` / `this month` | `dateFrom` pinned to Monday / the 1st (phrase required; bare `week`/`month` stay keywords) |
+| `recent`, `recently` | `dateFrom` = start of today − 6 days |
 
-Explicit fields on the query (`categories`, `isScreenshot`) **override**
+Time words are resolved against an injectable clock (`SearchService.nowSeconds`);
+without a clock they stay keywords, so interpretation stays deterministic and
+testable. A pinned document type excludes MediaStore rows entirely — "find
+pdfs" consults only the document index. Screenshot queries drop document-type
+pins (documents never match a screenshot query).
+
+Explicit fields on the query (`categories`, `isScreenshot`, `dateFrom`,
+`documentTypes`) **override**
 interpretation. Unknown words stay keywords. Filters combine with `AND`;
 keywords combine with `OR`, coverage-ranked.
 
@@ -207,7 +221,9 @@ so the seam can later swap to FTS5/trigram/Roaring-bitmap per-token indexes
 ## 6. Testing
 
 - **Unit**: normalizer, interpreter, ranker, service (validation + error
-  mapping), metadata+OCR merge by stable key.
+  mapping), metadata+OCR merge by stable key; Prompt #10 adds document-word
+  and time-word interpretation (`test/search/search_interpreter_document_date_test.dart`)
+  including the no-clock keyword fallback and document-type/date merging.
 - **DB**: migration v2→v3 backfill fidelity; `searchCandidates` SQL behavior
   (keyword OR, coverage ordering, filters, prefix escaping, pool bound,
   rollback visibility, no-matches); `searchOcrCandidates` (completed-only,

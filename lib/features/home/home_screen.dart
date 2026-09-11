@@ -5,9 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_info.dart';
-import '../../core/ocr/ocr_coordinator.dart';
-import '../../core/ocr/ocr_models.dart' show OcrRunStatus;
-import '../../core/ocr/ocr_providers.dart';
+import '../../core/indexing/indexing_coordinator.dart';
+import '../../core/indexing/indexing_providers.dart';
 import '../../core/platform/content_access_models.dart' show ContentCategory;
 import '../../core/search/search_error.dart';
 import '../../core/search/search_field.dart';
@@ -32,17 +31,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Timer? _debounce;
   SearchQuery _query = const SearchQuery();
 
-  // Background OCR is driven by app lifecycle: it starts when the app comes
-  // back to the foreground and stops when it hides, so extraction never keeps
+  // Background indexing is driven by app lifecycle: the full local pipeline
+  // (media sync → documents → OCR) starts when the app comes to the
+  // foreground and is cancelled when it hides, so extraction never keeps
   // chewing battery while the app is away (AGENTS.md §22).
   late final AppLifecycleListener _lifecycleListener = AppLifecycleListener(
-    onResume: () => unawaited(ref.read(ocrCoordinatorProvider).start()),
-    onPause: () => ref.read(ocrCoordinatorProvider).cancel(),
+    onResume: () => unawaited(ref.read(indexingCoordinatorProvider).start()),
+    onPause: () => ref.read(indexingCoordinatorProvider).cancel(),
   );
 
   @override
   void initState() {
     super.initState();
+    // AppLifecycleListener.onResume does not fire on the initial attach, so
+    // the first indexing run is kicked once here; later runs are lifecycle-
+    // driven. The coordinator is single-flight, so both triggers coexist.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        unawaited(ref.read(indexingCoordinatorProvider).start());
+      }
+    });
   }
 
   @override
@@ -98,7 +106,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onClear: _clear,
                 ),
               ),
-              _ocrStatusLine(),
+              _indexingStatusLine(),
               const SizedBox(height: 8),
               Expanded(child: _buildBody(theme)),
             ],
@@ -129,37 +137,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Slim extraction line under the search field. While a run is active it
-  /// shows live progress (so the phone does not "do nothing" while text is
-  /// being read); once a run finished it leaves a one-line confirmation in the
-  /// idle state instead of cluttering active searches.
-  Widget _ocrStatusLine() {
-    final progress = ref.watch(ocrRunProgressProvider);
-    return progress.maybeWhen(
+  /// Slim indexing line under the search field. While a run is active it
+  /// shows live pipeline progress (so the phone does not "do nothing" while
+  /// the library is being indexed); a terminal state leaves a one-line
+  /// confirmation in the idle view with a Retry/Resume action where useful.
+  Widget _indexingStatusLine() {
+    final status = ref.watch(indexingStatusProvider);
+    return status.maybeWhen(
       data: (snapshot) {
-        final running = snapshot.status == OcrRunStatus.running;
-        final show = running || (!_query.hasContent && snapshot.processed > 0);
+        final show =
+            snapshot.isRunning ||
+            (!_query.hasContent && snapshot.phase != IndexingPhase.idle);
         if (!show) return const SizedBox.shrink();
-        return _OcrStatusTile(snapshot: snapshot);
+        return _IndexingStatusTile(
+          snapshot: snapshot,
+          onAction: () =>
+              unawaited(ref.read(indexingCoordinatorProvider).start()),
+        );
       },
       orElse: () => const SizedBox.shrink(),
     );
   }
 }
 
-/// One-line OCR extraction status with a spare progress bar while running.
-class _OcrStatusTile extends StatelessWidget {
-  const _OcrStatusTile({required this.snapshot});
+/// One-line indexing status with a spare progress bar while the pipeline is
+/// working, plus a Retry/Resume action for terminal states that justify one.
+class _IndexingStatusTile extends StatelessWidget {
+  const _IndexingStatusTile({required this.snapshot, required this.onAction});
 
-  final OcrRunProgress snapshot;
+  final IndexingStatus snapshot;
+
+  /// Starts a fresh pipeline run — used by Retry (failed) and Resume
+  /// (cancelled). Single-flight, so tapping it while running is harmless.
+  final VoidCallback onAction;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final running = snapshot.status == OcrRunStatus.running;
-    final label = running
-        ? 'Reading text from images · ${snapshot.processed}${snapshot.total > 0 ? '/${snapshot.total}' : ''}'
-        : 'Text extracted from ${snapshot.processed} images';
+    final running = snapshot.isRunning;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
@@ -177,7 +192,9 @@ class _OcrStatusTile extends StatelessWidget {
                 const SizedBox(width: 8),
               ] else ...[
                 Icon(
-                  Icons.text_fields_rounded,
+                  snapshot.phase == IndexingPhase.failed
+                      ? Icons.error_outline_rounded
+                      : Icons.task_alt_rounded,
                   size: 14,
                   color: AppColors.textTertiary,
                 ),
@@ -185,7 +202,7 @@ class _OcrStatusTile extends StatelessWidget {
               ],
               Expanded(
                 child: Text(
-                  label,
+                  _label(),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
@@ -193,22 +210,105 @@ class _OcrStatusTile extends StatelessWidget {
                   ),
                 ),
               ),
+              if (!running) _terminalAction(theme),
             ],
           ),
-          if (running) ...[
-            const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(2),
-              child: LinearProgressIndicator(
-                value: snapshot.fraction,
-                minHeight: 3,
-                backgroundColor: AppColors.divider,
-              ),
-            ),
-          ],
+          ..._progressRows(),
         ],
       ),
     );
+  }
+
+  Widget _terminalAction(ThemeData theme) {
+    final label = switch (snapshot.phase) {
+      IndexingPhase.cancelled => 'Resume',
+      IndexingPhase.failed => 'Retry',
+      _ => null,
+    };
+    if (label == null) return const SizedBox.shrink();
+    return TextButton(
+      style: TextButton.styleFrom(
+        visualDensity: VisualDensity.compact,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+      ),
+      onPressed: onAction,
+      child: Text(
+        label,
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: theme.colorScheme.primary,
+        ),
+      ),
+    );
+  }
+
+  String _label() => switch (snapshot.phase) {
+    IndexingPhase.preparing => 'Indexing your files…',
+    IndexingPhase.discovering => 'Indexing your files…',
+    IndexingPhase.persisting => _persistingLabel(),
+    IndexingPhase.enriching => _enrichingLabel(),
+    IndexingPhase.completed => 'Everything is indexed',
+    IndexingPhase.cancelled => 'Indexing paused',
+    IndexingPhase.failed => snapshot.message ?? 'Indexing couldn\'t finish',
+    IndexingPhase.idle => 'Indexing your files…',
+  };
+
+  String _persistingLabel() {
+    final total = snapshot.mediaIndexed;
+    final changed = snapshot.mediaChanged;
+    if (total == null) return 'Saving index…';
+    if (changed == null || changed == 0) return '$total files indexed';
+    return '$changed files updated · $total indexed';
+  }
+
+  String _enrichingLabel() {
+    final doc = snapshot.documentsProcessed;
+    final docTotal = snapshot.documentsTotal;
+    final content = snapshot.contentProcessed;
+    final contentTotal = snapshot.contentTotal;
+    if (doc == null && content == null) return 'Analyzing content…';
+    final docPart = doc == null || docTotal == null || docTotal == 0
+        ? null
+        : 'documents $doc/$docTotal';
+    final contentPart =
+        content == null || contentTotal == null || contentTotal == 0
+        ? null
+        : 'screenshots $content/$contentTotal';
+    final parts = [?contentPart, ?docPart];
+    if (parts.isEmpty) return 'Analyzing content…';
+    return 'Analyzing · ${parts.join(' · ')}';
+  }
+
+  List<Widget> _progressRows() {
+    final fraction = _enrichFraction();
+    if (fraction == null) return const [];
+    return [
+      const SizedBox(height: 6),
+      ClipRRect(
+        borderRadius: BorderRadius.circular(2),
+        child: LinearProgressIndicator(
+          value: fraction,
+          minHeight: 3,
+          backgroundColor: AppColors.divider,
+        ),
+      ),
+    ];
+  }
+
+  /// Live enrichment share for the progress bar, preferring the OCR window
+  /// and falling back to documents. Null → indeterminate (no fake progress).
+  double? _enrichFraction() {
+    if (snapshot.phase != IndexingPhase.enriching) return null;
+    final processed = snapshot.contentProcessed;
+    final total = snapshot.contentTotal;
+    if (processed != null && total != null && total > 0) {
+      return (processed / total).clamp(0.0, 1.0);
+    }
+    final docProcessed = snapshot.documentsProcessed;
+    final docTotal = snapshot.documentsTotal;
+    if (docProcessed != null && docTotal != null && docTotal > 0) {
+      return (docProcessed / docTotal).clamp(0.0, 1.0);
+    }
+    return null;
   }
 }
 
