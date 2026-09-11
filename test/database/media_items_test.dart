@@ -227,17 +227,17 @@ void main() {
       directory.deleteSync(recursive: true);
     });
 
-    test('migration creates the expected initial schema (v1)', () async {
+    test('migration creates the expected schema (v2)', () async {
       final userVersion = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(userVersion.data.values.single, 1);
-      final columns = await db
+      expect(userVersion.data.values.single, 2);
+      final mediaColumns = await db
           .customSelect('PRAGMA table_info(media_items)')
           .get()
           .then((rows) => rows.map((r) => r.data['name']).toSet());
       expect(
-        columns,
+        mediaColumns,
         containsAll({
           'stable_key',
           'category',
@@ -272,6 +272,70 @@ void main() {
           'last_seen_access_scope',
         }),
       );
+      final stateColumns = await db
+          .customSelect('PRAGMA table_info(index_state)')
+          .get()
+          .then((rows) => rows.map((r) => r.data['name']).toSet());
+      expect(stateColumns, {
+        'category',
+        'volume_name',
+        'last_generation',
+        'last_access_scope',
+        'last_sync_at',
+        'last_result',
+      });
+    });
+
+    test('upgrading a v1 database preserves data and adds index_state', () async {
+      final directory = Directory.current.createTempSync(
+        'vorafind_upgrade_test',
+      );
+      final path = '${directory.path}${Platform.pathSeparator}v1.sqlite';
+
+      try {
+        // Craft a genuine v1 database in-place: create the physical schema
+        // (v1 and v2 `media_items` DDL are identical), then remove the v2-only
+        // `index_state` table and roll `user_version` back to 1 so reopening
+        // must execute the real v1→v2 upgrade path.
+        final v1 = AppDatabase(NativeDatabase(File(path)));
+        await v1.customStatement('DROP TABLE IF EXISTS index_state;');
+        await v1.customStatement('PRAGMA user_version = 1;');
+        await v1
+            .into(v1.mediaItems)
+            .insert(
+              MediaItemsCompanion(
+                stableKey: const Value('external_primary:9'),
+                category: const Value('images'),
+                volumeName: const Value('external_primary'),
+                mediaStoreId: const Value(9),
+                contentUri: const Value(
+                  'content://media/external/images/media/9',
+                ),
+                displayName: const Value('kept.jpg'),
+                firstDiscoveredAt: const Value(1),
+                lastDiscoveredAt: const Value(2),
+                metadataRevision: const Value(3),
+                indexingStatus: const Value(IndexingStatus.none),
+              ),
+            );
+        await v1.close();
+
+        final upgraded = AppDatabase(NativeDatabase(File(path)));
+        // The v1 row survived the upgrade untouched.
+        final row = await upgraded.select(upgraded.mediaItems).getSingle();
+        expect(row.stableKey, 'external_primary:9');
+        expect(row.displayName, 'kept.jpg');
+        expect(row.metadataRevision, 3);
+        // The checkpoint table exists and is empty.
+        final versionAfter = await upgraded
+            .customSelect('PRAGMA user_version')
+            .getSingle();
+        expect(versionAfter.data.values.single, 2);
+        expect(await upgraded.select(upgraded.indexState).get(), isEmpty);
+        await upgraded.close();
+      } finally {
+        directory.deleteSync(recursive: true);
+      }
     });
   });
 }

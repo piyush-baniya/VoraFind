@@ -76,6 +76,57 @@ void main() {
     expect(result.code, 'busy');
   });
 
+  test('startDiscovery sends the volumes filter when provided', () async {
+    await mockChannel((call) => startResult());
+
+    final result = await buildDiscovery().startDiscovery(
+      [ContentCategory.images],
+      volumes: ['external_primary'],
+    );
+
+    expect(calls.single.arguments, {
+      'categories': ['images'],
+      'volumes': ['external_primary'],
+    });
+    expect(result.accepted, isTrue);
+  });
+
+  test('startDiscovery omits the volumes key when no filter is given', () async {
+    await mockChannel((call) => startResult());
+
+    await buildDiscovery().startDiscovery(
+      [ContentCategory.images],
+      volumes: const [],
+    );
+
+    expect(calls.single.arguments, {
+      'categories': ['images'],
+    });
+  });
+
+  test('getGeneration round-trips null and a real token', () async {
+    await mockChannel(
+      (call) => call.arguments['volumeName'] == 'unknown'
+          ? {'generation': null}
+          : {'generation': 42},
+    );
+
+    final discovery = buildDiscovery();
+    expect(
+      await discovery.getGeneration(ContentCategory.images, 'external_primary'),
+      42,
+    );
+    expect(
+      await discovery.getGeneration(ContentCategory.images, 'unknown'),
+      isNull,
+    );
+    expect(calls.map((c) => c.method), ['getGeneration', 'getGeneration']);
+    expect(calls.first.arguments, {
+      'category': 'images',
+      'volumeName': 'external_primary',
+    });
+  });
+
   test('ackBatch sends the sequence and parses the boolean', () async {
     await mockChannel((call) => true);
 

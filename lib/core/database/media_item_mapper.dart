@@ -99,6 +99,37 @@ class MediaItemMapper {
     lastSeenAccessScope: _nullable<String>(accessScope?.name),
   );
 
+  /// True when the persisted [existing] row carries discovery content
+  /// identical to [record].
+  ///
+  /// Bookkeeping columns (first/last-seen, revision, indexing status, access
+  /// scope) and the placeholder audio columns the scanner does not emit yet
+  /// (`albumArtist`, `trackNumber`, `discNumber`, `genre`) are intentionally
+  /// ignored, so an "unchanged" record can be skipped without touching any of
+  /// them — `metadataRevision` stays stable and timestamps are not rewritten.
+  bool sameContent(MediaItem existing, MediaDiscoveryRecord record) {
+    return existing.category == record.category.name &&
+        existing.volumeName == record.volumeName &&
+        existing.mediaStoreId == record.mediaStoreId &&
+        existing.contentUri == record.contentUri &&
+        existing.displayName == record.displayName &&
+        existing.title == record.title &&
+        existing.mimeType == record.mimeType &&
+        existing.sizeBytes == record.sizeBytes &&
+        existing.dateAdded == record.dateAdded &&
+        existing.dateModified == record.dateModified &&
+        existing.relativePath == record.relativePath &&
+        existing.bucketDisplayName == record.bucketDisplayName &&
+        existing.width == record.width &&
+        existing.height == record.height &&
+        existing.durationMs == record.durationMs &&
+        existing.artist == record.artist &&
+        existing.album == record.album &&
+        existing.screenshotScore == record.screenshotScore &&
+        existing.isScreenshot == record.isScreenshot &&
+        existing.relinkSignature == record.relinkSignature;
+  }
+
   /// A nullable SQL expression; null becomes a bound NULL parameter.
   Expression<T> _nullable<T extends Object>(T? value) => Variable<T>(value);
 }

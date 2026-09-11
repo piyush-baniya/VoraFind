@@ -39,8 +39,13 @@ class DiscoveryBridge(private val activity: ComponentActivity) :
                     result.error("invalidArguments", "A non-empty category list is required.", null)
                     return
                 }
+                val volumes = parseVolumes(call.argument<List<Any?>>("volumes"))
+                if (volumes == null) {
+                    result.error("invalidArguments", "If provided, the volume list must be non-empty.", null)
+                    return
+                }
                 try {
-                    result.success(engine.start(DiscoveryOptions(categories)).toMap())
+                    result.success(engine.start(DiscoveryOptions(categories, volumes)).toMap())
                 } catch (e: Exception) {
                     result.error("discoveryStartFailed", "Could not start discovery.", null)
                 }
@@ -58,6 +63,16 @@ class DiscoveryBridge(private val activity: ComponentActivity) :
             "cancelDiscovery" -> result.success(engine.cancel())
 
             "getDiscoveryStatus" -> result.success(engine.status().toMap())
+
+            "getGeneration" -> {
+                val category = parseCategory(call.argument<String>("category"))
+                val volumeName = call.argument<String>("volumeName")
+                if (category == null || volumeName.isNullOrBlank()) {
+                    result.error("invalidArguments", "category and volumeName are required.", null)
+                    return
+                }
+                result.success(mapOf("generation" to engine.probeGeneration(category, volumeName)))
+            }
 
             else -> result.notImplemented()
         }
@@ -78,6 +93,22 @@ class DiscoveryBridge(private val activity: ComponentActivity) :
         } catch (_: IllegalArgumentException) {
             null
         }
+    }
+
+    private fun parseCategory(raw: String?): ContentCategory? {
+        if (raw == null) return null
+        return try {
+            ContentCategory.fromWire(raw)
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
+
+    /** null => no volume filter; an explicit-but-empty list is an argument error. */
+    private fun parseVolumes(raw: List<Any?>?): List<String>? {
+        if (raw == null) return emptyList()
+        val volumes = raw.mapNotNull { (it as? String)?.trim()?.takeIf(String::isNotEmpty) }
+        return if (volumes.isEmpty()) null else volumes
     }
 
     companion object {

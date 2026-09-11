@@ -4,7 +4,10 @@ Status: **Partially implemented — the MediaStore discovery scanner baseline ha
 landed and matches this document's §6 (Kotlin owns MediaStore), §8.1 (stable
 identity/re-link signature), §11 (bounded batched, ack-gated delivery), §13
 (channel contract), and §17 (screenshot heuristic). The Drift/SQLite index exists
-as `media_items` (see `docs/persistence.md`, Prompt #5); search, OCR, and
+as `media_items` (see `docs/persistence.md`, Prompt #5). Incremental
+synchronization (Prompt #6) is implemented: generation fast-checks skip unchanged
+units and a full-scope rescan reconciles deletions over
+`index_state` checkpoints (see §9 and `docs/persistence.md`). Search, OCR, and
 scheduled/resumable indexing remain unimplemented.**
 
 > Concrete implementation details, the exact channel contract, projections,
@@ -175,7 +178,7 @@ permission set, respecting Android 14+ partial access and Google Play policy.
 
 | Need | Entry point |
 | --- | --- |
-| Full incremental scan | `Images`, `Video`, `Audio` collections per volume, with `GENERATION_*` predicates (API 30+) |
+| Full incremental scan | `Images`, `Video`, `Audio` collections per volume; `getGeneration()` gate skips *unchanged* units, otherwise a keyset rescan of that (volume, collection) |
 | Change counter | `MediaStore.getGeneration(uri)` (API 30+) |
 | Shape-change signal | `MediaStore.getVersion(uri)` — opaque; triggers a lightweight sweep, never a permanent reliance |
 | Store reset / external changes | Version-change → full resync guaranteed-correct path |
@@ -275,42 +278,77 @@ costs correctness, so the rules are explicit.
 
 ## 9. Incremental Indexing Strategy
 
-### 9.1 The primary path — generations (API 30+)
+One honest limitation shapes everything here: **`MediaStore` generation columns are
+not a reliable changed-record cursor on every API level** — rows can be missed or
+delivered out of chronology, and reading generation guarantees nothing about what a
+`GENERATION_MODIFIED >= X` predicate will return on a given OEM build. We therefore
+use generation exactly as Google documents it: a *change detector*, never a cursor.
+"Changed" ⇒ re-run; "unchanged" ⇒ skip. This keeps the fast path (API 30+ volumes
+that did not change) cheap while the slow path is always a correct, plain keyset
+rescan — no invented delta queries.
 
-For each `(volume, collection)`:
+### 9.1 The fast path — `getGeneration()` as an unchanged check (API 30+)
 
-1. Read `getGeneration(collectionUri)`. If unchanged since our checkpoint, nothing to do.
-2. Emit rows where `GENERATION_MODIFIED >= lastScannedGeneration` **or**
-   `GENERATION_ADDED >= lastScannedGeneration`, ordered by `_ID` (keyset).
-3. Update checkpoint to the last seen generation at batch boundaries (never mid-batch).
+For each sync unit `(volume, collection)` (see `docs/persistence.md` §7 — "checkpoint"):
 
-Generation is robust against wall-clock tampering (unlike `DATE_MODIFIED`).
+1. Load the last checkpoint for `(volume, collection)` from `index_state`.
+2. If the checkpoint exists, both stored and current access scopes are **full**, and
+   the stored `lastGeneration` equals the freshly probed `getGeneration(...)`, the unit
+   is **unchanged**: we skip scanning it entirely and report it as `unchanged`.
+3. If `getGeneration` is unavailable (API < 30), the scope is partial, or the
+   checkpoint is missing, the unit is scanned in full (§9.2).
 
-### 9.2 The fallback path — version sweep
+"Unchanged" is asserted per unit and per volume filter — a sync run only rescans the
+volumes that actually need it. A unit that is *not* in the requested scope or reports
+no external volumes is finalized as `unavailable` without scanning.
 
-`getVersion()` describes table shape, not chronology. On a version change we run a
-**lightweight sweep**: keyset-scan IDs only (cheap projection), diff against the index,
-and mark deletes/updates. This is bounded and cheap because we never re-extract content.
+### 9.2 The correct path — full-scope rescan + bounded reconciliation
+
+A unit that fails the fast check is **rescanned keyset-wise over its volume filter**
+(`WHERE _ID > ? ORDER BY _ID`, pages of ≤ 500). Every row upserts via its stable key
+(`volumeName:mediaStoreId`); `sameContent` skips rows whose persisted fields are
+identical, and `metadata_revision` bumps only when something actually changed. At the
+end:
+
+- **Deletion reconciliation** (`DeletionReconciler` in Dart) merges the ascending
+  indexed rows of that `(volume, collection)` against the ascending scanned IDs and
+  deletes — in chunked `DELETE … WHERE stable_key IN (…)` batches — only rows the scan
+  has already passed. Mapping-skipped rows (unparseable/unsupported items the scanner
+  dropped) are treated as absent; the reconciler never guesses about rows the scan has
+  not yet reached.
+- A checkpoint is written **only on a full clean success**: the post-scan
+  generation (or the probed value) plus the sync timestamp, with scope `full`
+  → otherwise **no checkpoint** and **no deletion**. A cancelled or failed unit
+  discards its reconciler and writes nothing: committed batches remain in the index,
+  but the next run re-scans from scratch, which is always safe.
+
+Everything is bounded: one page in memory at a time, DB side merged via keyset pages,
+deletions chunked. Never the whole library in memory.
 
 ### 9.3 Deletion detection (with access-scope guard)
 
 The dangerous case: Android 14+ partial access makes unselected items **vanish from
 our queries**. A naive "not in result = deleted" pass would wipe the index.
 
-- **Guard:** deletion reconciliation runs only when the access scope at sync time
-  equals the scope now (both full, or both partial with the same selected-set
-  generation). Partial scope → we suspend deletion-logic for media and only add/update.
-- **Mechanism (all API levels):** keyset diff of indexed IDs vs current IDs, chunked.
-  Only entries absent for a minimum of N consecutive passes are hard-deleted, so a
-  transient storage event never destroys the index.
-- **Accelerator (API 37+, opportunistic):** if `MediaStore.queryDeletedFiles()` is
-  available, consult it first to catch deletes cheaply. Never make it the only path.
+- **Guard (implemented):** deletions only ever run for a *clean, full-scope* unit —
+  `ContentCategoryAccess.full`. Under `partial`, deletion logic is suspended for that
+  category: rows are added/updated but never deleted, and the checkpoint is stored with
+  `scope = partial` (preserving `lastGeneration`) so a later full-scope sync can
+  reconcile. Stable keys are never erased from a partial view.
+- **Mechanism (all API levels):** keyset diff of indexed `(volume, collection)` rows
+  vs current scan IDs, chunked, as described in §9.2. Deletions take effect on the
+  first clean full-scope pass; an *N-consecutive-passes grace period* (§future
+  hardening) is deliberately not implemented yet.
+- **Accelerator (API 37+, opportunistic, future):** `MediaStore.queryDeletedFiles()`
+  can narrow the diff cheaply. Never the only path. Not implemented.
 
 ### 9.4 What "incremental" covers at MVP
 
-Photos/videos/audio added or (re)modified since last sync; screenshots arriving;
-documents appearing in granted SAF trees. Content extraction (OCR) is decoupled
-(§16) — a new photo gets *indexed* (metadata) immediately and *extracted* (OCR) later.
+Photos/videos/audio unchanged since the last clean full-scope sync are skipped via the
+generation fast check; anything added or (re)modified on a full-scope volume is rescanned
+and upserted, and rows that disappeared are reconciled away; under partial access only
+add/update runs. Documents (SAF) and content extraction (OCR) are decoupled (§16) and
+still out of scope.
 
 ---
 
@@ -350,7 +388,8 @@ documents appearing in granted SAF trees. Content extraction (OCR) is decoupled
   skipped and recorded in the native error feed, never propagated to Flutter as a
   fatal.
 - **Cancellation:** checked between every keyed page and every row; a cancelled run
-  writes the checkpoint reached so far.
+  writes **no checkpoint** — batches already committed to the index remain valid, and
+  the unit is re-scanned from scratch next time (always safe).
 
 ---
 

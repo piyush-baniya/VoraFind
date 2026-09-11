@@ -4,6 +4,7 @@ import com.piyushbaniya.vorafind.content.ContentAccessState
 import com.piyushbaniya.vorafind.content.ContentCategory
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -290,5 +291,88 @@ class DiscoveryEngineTest {
         assertEquals(3L, engine.status().recordsDiscovered)
         assertEquals(2, engine.status().batchesSent)
         assertEquals(2, sink.batches())
+    }
+
+    @Test
+    fun `volumes filter restricts the plans that are scanned`() {
+        val sink = RecordingSink()
+        val querier = FakeQuerier(
+            mapOf(ContentCategory.IMAGES to listOf(listOf(record(1, volumeName = "external_primary")))),
+            externalVolumes = listOf("external_primary", "SD Card"),
+        )
+        val engine = engine(querier)
+        engine.attachSink(sink)
+
+        val result = engine.start(
+            DiscoveryOptions(listOf(ContentCategory.IMAGES), volumes = listOf("external_primary")),
+        )
+        assertTrue(result.accepted)
+        awaitCondition { engine.status().state == DiscoveryState.COMPLETED }
+        val started = sink.events().filter { it["type"] == "discoveryStarted" }
+        assertEquals(listOf("external_primary"), started.map { it["volume"] })
+    }
+
+    @Test
+    fun `volumes filter never widens beyond the available volumes`() {
+        val sink = RecordingSink()
+        val querier = FakeQuerier(
+            mapOf(ContentCategory.IMAGES to listOf(listOf(record(1, volumeName = "external_primary")))),
+            externalVolumes = listOf("external_primary"),
+        )
+        val engine = engine(querier)
+        engine.attachSink(sink)
+
+        val result = engine.start(
+            DiscoveryOptions(listOf(ContentCategory.IMAGES), volumes = listOf("external_primary", "Ghost Volume")),
+        )
+        assertTrue(result.accepted)
+        awaitCondition { engine.status().state == DiscoveryState.COMPLETED }
+        val started = sink.events().filter { it["type"] == "discoveryStarted" }
+        assertEquals(listOf("external_primary"), started.map { it["volume"] })
+    }
+
+    @Test
+    fun `an empty volume filter behaves like scanning every volume`() {
+        val sink = RecordingSink()
+        val querier = FakeQuerier(
+            mapOf(ContentCategory.IMAGES to listOf(listOf(record(1, volumeName = "external_primary")))),
+            externalVolumes = listOf("external_primary", "SD Card"),
+        )
+        val engine = engine(querier)
+        engine.attachSink(sink)
+
+        assertTrue(engine.start(DiscoveryOptions(listOf(ContentCategory.IMAGES), volumes = emptyList())).accepted)
+        awaitCondition { engine.status().state == DiscoveryState.COMPLETED }
+        val started = sink.events().filter { it["type"] == "discoveryStarted" }
+        assertEquals(listOf("external_primary", "SD Card"), started.map { it["volume"] })
+    }
+
+    @Test
+    fun `probe generation is forwarded to the querier`() {
+        val querier = FakeQuerier(
+            emptyMap(),
+            generations = mapOf(ContentCategory.IMAGES to "external_primary" to 42L),
+        )
+        val engine = engine(querier)
+        assertEquals(42L, engine.probeGeneration(ContentCategory.IMAGES, "external_primary"))
+        assertNull(engine.probeGeneration(ContentCategory.IMAGES, "unknown_volume"))
+        assertNull(engine.probeGeneration(ContentCategory.DOCUMENTS, "external_primary"))
+    }
+
+    @Test
+    fun `a completed session can be started again`() {
+        val sink = RecordingSink()
+        val querier = FakeQuerier(mapOf(ContentCategory.IMAGES to listOf(listOf(record(1)))))
+        val engine = engine(querier)
+        engine.attachSink(sink)
+
+        assertTrue(engine.start(DiscoveryOptions(listOf(ContentCategory.IMAGES))).accepted)
+        awaitCondition { engine.status().state == DiscoveryState.COMPLETED }
+        val queriesAfterFirst = querier.queryCount
+
+        val again = engine.start(DiscoveryOptions(listOf(ContentCategory.IMAGES)))
+        assertTrue(again.accepted)
+        awaitCondition { querier.queryCount > queriesAfterFirst }
+        awaitCondition { engine.status().state == DiscoveryState.COMPLETED }
     }
 }

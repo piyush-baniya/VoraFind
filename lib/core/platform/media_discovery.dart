@@ -17,7 +17,15 @@ abstract interface class MediaDiscovery {
   /// Starts a discovery session for [categories]. The caller checks
   /// [DiscoveryStartResult.accepted]; per-category outcomes (started/partial/
   /// unavailable) are reported in [DiscoveryStartResult.categories].
-  Future<DiscoveryStartResult> startDiscovery(List<ContentCategory> categories);
+  /// When [volumes] is non-empty, only those MediaStore volumes are scanned.
+  Future<DiscoveryStartResult> startDiscovery(
+    List<ContentCategory> categories, {
+    List<String>? volumes,
+  });
+
+  /// Reads the MediaStore generation token for one category/volume pair.
+  /// Null means unknown/unsupported, which disables the unchanged fast-check.
+  Future<int?> getGeneration(ContentCategory category, String volumeName);
 
   /// ACKs batch [sequence], allowing the scanner to emit the next batch.
   /// Returns false for unknown, duplicate, or stale sequences.
@@ -55,10 +63,22 @@ class MethodChannelMediaDiscovery implements MediaDiscovery {
 
   @override
   Future<DiscoveryStartResult> startDiscovery(
-    List<ContentCategory> categories,
-  ) => _invoke('startDiscovery', {
+    List<ContentCategory> categories, {
+    List<String>? volumes,
+  }) => _invoke('startDiscovery', {
     'categories': categories.map((category) => category.name).toList(),
+    // Only include the filter when it is non-empty — the wire contract has no
+    // "volumes" key otherwise.
+    if (volumes != null && volumes.isNotEmpty)
+      'volumes': volumes.toList(growable: false),
   }, (raw) => DiscoveryStartResult.fromJson(_mapOf(raw)));
+
+  @override
+  Future<int?> getGeneration(ContentCategory category, String volumeName) =>
+      _invoke('getGeneration', {
+        'category': category.name,
+        'volumeName': volumeName,
+      }, (raw) => _mapOf(raw)['generation'] as int?);
 
   @override
   Future<bool> ackBatch(int sequence) => Future.sync(() {

@@ -18,6 +18,13 @@ interface DiscoveryQuerier {
 
     /** One page: up to [QueryRequest.batchSize] records plus hasMore/exhaustion. */
     fun queryPage(request: QueryRequest): QueryPage
+
+    /**
+     * MediaStore generation snapshot used only as an "unchanged" fast-check hint
+     * (architecture §15). Defaults to null (unsupported/unknown) so implementations
+     * and fakes never need it; null simply disables the fast-check.
+     */
+    fun probeGeneration(category: ContentCategory, volumeName: String): Long? = null
 }
 
 /**
@@ -68,7 +75,7 @@ class MediaStoreQuerier(private val context: Context) : DiscoveryQuerier {
                 batchSize = request.batchSize,
                 isCancelled = request.isCancelled,
             )
-            return page.copy(generationAfter = generationOf(collectionUri, request.category))
+            return page.copy(generationAfter = generationOf(collectionUri))
         }
     }
 
@@ -144,14 +151,18 @@ class MediaStoreQuerier(private val context: Context) : DiscoveryQuerier {
     private fun selectionArgsFor(lastId: Long): Array<String>? =
         if (lastId > 0L) arrayOf(lastId.toString()) else null
 
+    override fun probeGeneration(category: ContentCategory, volumeName: String): Long? {
+        if (category == ContentCategory.DOCUMENTS) return null
+        return generationOf(collectionUriFor(category, volumeName))
+    }
+
     /**
      * MediaStore generation snapshot for incremental sync (architecture §15).
      * API 34+ surfaces as an opaque-string overload; the return value is still a
      * monotonic integer-like generation token. Never used for delta scanning.
      */
-    private fun generationOf(collectionUri: Uri, category: ContentCategory): Long? {
+    private fun generationOf(collectionUri: Uri): Long? {
         if (apiLevel < Build.VERSION_CODES.R) return null
-        if (category == ContentCategory.DOCUMENTS) return null
         return try {
             MediaStore.getGeneration(context, collectionUri.toString())
         } catch (_: Exception) {

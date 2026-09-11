@@ -61,11 +61,19 @@ class DiscoveryEngine(
     fun start(options: DiscoveryOptions): DiscoveryStartResult {
         val statuses = mutableListOf<StartCategoryStatus>()
         val plans = mutableListOf<DiscoveryPlan>()
+        val desiredVolumes = options.volumes
+            ?.map { it.trim() }
+            ?.filter { it.isNotEmpty() }
+            ?.toSet()
+            ?.takeIf { it.isNotEmpty() }
+        // Intersect the caller's volume filter with the volumes the querier
+        // actually reports; a volume that vanished is simply not planned.
+        val scanVolumes = querier.volumes().filter { desiredVolumes == null || it in desiredVolumes }
         for (category in options.categories) {
             val status = startCategoryStatus(category)
             statuses += status
             if (status.status != CategoryStartStatus.UNAVAILABLE) {
-                for (volume in querier.volumes()) {
+                for (volume in scanVolumes) {
                     plans += DiscoveryPlan(
                         category = category,
                         volumeName = volume,
@@ -75,7 +83,9 @@ class DiscoveryEngine(
             }
         }
         synchronized(lock) {
-            if (stateRef.get() != DiscoveryState.IDLE) {
+            // Only a live session blocks the next one; terminal states
+            // (completed/cancelled/failed) may be reused by a later start.
+            if (stateRef.get() == DiscoveryState.RUNNING) {
                 return DiscoveryStartResult(false, DISCOVERY_CONTRACT_VERSION, "busy", emptyList())
             }
             if (sink === NoopDiscoveryEventSink) {
@@ -95,6 +105,10 @@ class DiscoveryEngine(
         executor.execute { runSession(plans, statuses) }
         return DiscoveryStartResult(true, DISCOVERY_CONTRACT_VERSION, null, statuses)
     }
+
+    /** MediaStore generation snapshot for the "unchanged" fast-check (§15). */
+    fun probeGeneration(category: ContentCategory, volumeName: String): Long? =
+        querier.probeGeneration(category, volumeName)
 
     private fun startCategoryStatus(category: ContentCategory): StartCategoryStatus {
         if (category == ContentCategory.DOCUMENTS) {
@@ -323,4 +337,6 @@ class DiscoveryEngine(
 /** Caller-supplied discovery options. */
 data class DiscoveryOptions(
     val categories: List<ContentCategory>,
+    /** Absolute volume names to scan; null or empty scans every available volume. */
+    val volumes: List<String>? = null,
 )

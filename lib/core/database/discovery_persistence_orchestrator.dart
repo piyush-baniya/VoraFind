@@ -25,32 +25,65 @@ class DiscoveryRunSummary {
   final int? failedBatchSequence;
 }
 
-/// Consumes the existing scanner's bounded batches and persists them before
-/// acknowledging.
+/// Lifecycle hooks for a [DiscoveryStreamConsumer].
 ///
-/// This is the Flutter-side persistence half of the architecture:
+/// Every hook is optional. A failing hook aborts the run exactly like a
+/// persistence failure — the affected batch is never acknowledged. Hooks are
+/// awaited in order: `onStarted` before a unit's first batch, `onBatchPersisted`
+/// after the batch committed and before it is acknowledged, and one terminal
+/// hook (`onCompleted`/`onCancelled`/`onError`) when the session ends.
+class DiscoveryStreamObserver {
+  const DiscoveryStreamObserver({
+    this.onStarted,
+    this.onProgress,
+    this.onBatchPersisted,
+    this.onCompleted,
+    this.onCancelled,
+    this.onError,
+  });
+
+  /// A category/volume scan began (before its first batch).
+  final Future<void> Function(DiscoveryStartedEvent event)? onStarted;
+
+  final Future<void> Function(DiscoveryProgressEvent event)? onProgress;
+
+  /// Fired after the batch committed to storage, before it is acknowledged.
+  /// [written] is what [DiscoveryStreamConsumer.persistBatch] returned.
+  final Future<void> Function(DiscoveryBatchEvent event, int written)?
+  onBatchPersisted;
+
+  final Future<void> Function(DiscoveryCompletedEvent event)? onCompleted;
+
+  final Future<void> Function(DiscoveryCancelledEvent event)? onCancelled;
+
+  final Future<void> Function(DiscoveryErrorEvent event)? onError;
+}
+
+/// Drives a discovery event stream against a caller-supplied persist callback.
+///
+/// This is the window-1 persistence core shared by
+/// [DiscoveryPersistenceOrchestrator] and the synchronization coordinator:
 ///
 /// ```text
-/// existing DiscoveryEngine
+/// DiscoveryEngine
 ///   → EventChannel batches
-///     → this orchestrator (transactional Drift upsert)
-///       → ACK existing batch
+///     → persistBatch (transactional Drift upsert)
+///       → observer.onBatchPersisted
+///         → ACK current batch
 /// ```
 ///
-/// Contract: a batch is acknowledged **only** after its SQLite transaction has
-/// committed. On persistence failure the batch is never acknowledged and the
-/// run fails loudly. Cancellation is honored by stopping after the current
-/// batch's transaction finishes (committed or rolled back — never torn).
-class DiscoveryPersistenceOrchestrator {
-  const DiscoveryPersistenceOrchestrator({required this.repository});
+/// Contract: a batch is acknowledged **only** after its persistence committed.
+/// On persistence failure, a rejected ACK, or a failing observer hook, the
+/// batch is never acknowledged and the run fails loudly. Cancellation is
+/// honored by stopping after the current batch's transaction finishes.
+class DiscoveryStreamConsumer {
+  const DiscoveryStreamConsumer({required this.persistBatch, this.observer});
 
-  final MediaRepository repository;
+  final Future<int> Function(DiscoveryBatchEvent event) persistBatch;
+  final DiscoveryStreamObserver? observer;
 
-  /// Drives [events] (the `MediaDiscovery.events()` stream) against the
-  /// repository, acknowledging each batch through [ackBatch] (normally
-  /// `MediaDiscovery.ackBatch`).
-  ///
-  /// Returns after a terminal event (`discoveryCompleted`,
+  /// Drives [events] to persistence, acknowledging each batch through
+  /// [ackBatch]. Returns after a terminal event (`discoveryCompleted`,
   /// `discoveryCancelled`, `discoveryError`), after a persistence failure, or
   /// when the stream ends.
   Future<DiscoveryRunSummary> run({
@@ -64,27 +97,35 @@ class DiscoveryPersistenceOrchestrator {
       String code,
       String message,
       int? sequence,
-    ) => Future.value(
-      DiscoveryRunSummary(
-        state: DiscoveryLifecycleState.failed,
-        batchesPersisted: batchesPersisted,
-        recordsPersisted: recordsPersisted,
-        errorCode: code,
-        errorMessage: message,
-        failedBatchSequence: sequence,
-      ),
+    ) async => DiscoveryRunSummary(
+      state: DiscoveryLifecycleState.failed,
+      batchesPersisted: batchesPersisted,
+      recordsPersisted: recordsPersisted,
+      errorCode: code,
+      errorMessage: message,
+      failedBatchSequence: sequence,
     );
+
+    Future<void> runHook(Future<void>? pending) async {
+      if (pending != null) await pending;
+    }
 
     try {
       await for (final event in events) {
         switch (event) {
           case DiscoveryBatchEvent():
             try {
-              final written = await repository.upsertBatch(
-                event.records,
-                generationAfter: event.generationAfter,
-                accessScope: event.accessScope,
-              );
+              final written = await persistBatch(event);
+              try {
+                await runHook(observer?.onBatchPersisted?.call(event, written));
+              } catch (error) {
+                return await failCore(
+                  'persistenceFailed',
+                  'An observer rejected the batch before it was acknowledged'
+                      ' (${error.runtimeType}).',
+                  event.sequence,
+                );
+              }
               batchesPersisted += 1;
               recordsPersisted += written;
 
@@ -104,19 +145,75 @@ class DiscoveryPersistenceOrchestrator {
                 event.sequence,
               );
             }
+          case DiscoveryStartedEvent():
+            final startedError = await _guard(
+              () => runHook(observer?.onStarted?.call(event)),
+            );
+            if (startedError != null) {
+              return await failCore(
+                'persistenceFailed',
+                'An observer rejected the start of a scan'
+                    ' (${startedError.runtimeType}).',
+                null,
+              );
+            }
+          case DiscoveryProgressEvent():
+            final progressError = await _guard(
+              () => runHook(observer?.onProgress?.call(event)),
+            );
+            if (progressError != null) {
+              return await failCore(
+                'persistenceFailed',
+                'An observer rejected a progress event'
+                    ' (${progressError.runtimeType}).',
+                null,
+              );
+            }
           case DiscoveryCompletedEvent():
+            final completedError = await _guard(
+              () => runHook(observer?.onCompleted?.call(event)),
+            );
+            if (completedError != null) {
+              return await failCore(
+                'persistenceFailed',
+                'An observer rejected completion (${completedError.runtimeType}).',
+                null,
+              );
+            }
             return DiscoveryRunSummary(
               state: DiscoveryLifecycleState.completed,
               batchesPersisted: batchesPersisted,
               recordsPersisted: recordsPersisted,
             );
           case DiscoveryCancelledEvent():
+            final cancelledError = await _guard(
+              () => runHook(observer?.onCancelled?.call(event)),
+            );
+            if (cancelledError != null) {
+              return await failCore(
+                'persistenceFailed',
+                'An observer rejected cancellation'
+                    ' (${cancelledError.runtimeType}).',
+                null,
+              );
+            }
             return DiscoveryRunSummary(
               state: DiscoveryLifecycleState.cancelled,
               batchesPersisted: batchesPersisted,
               recordsPersisted: recordsPersisted,
             );
           case DiscoveryErrorEvent():
+            final errorError = await _guard(
+              () => runHook(observer?.onError?.call(event)),
+            );
+            if (errorError != null) {
+              return await failCore(
+                'persistenceFailed',
+                'An observer rejected the error event'
+                    ' (${errorError.runtimeType}).',
+                null,
+              );
+            }
             return DiscoveryRunSummary(
               state: DiscoveryLifecycleState.failed,
               batchesPersisted: batchesPersisted,
@@ -124,9 +221,6 @@ class DiscoveryPersistenceOrchestrator {
               errorCode: event.code,
               errorMessage: event.message,
             );
-          case DiscoveryStartedEvent():
-          case DiscoveryProgressEvent():
-            break;
         }
       }
     } catch (error) {
@@ -143,5 +237,45 @@ class DiscoveryPersistenceOrchestrator {
       'The discovery stream ended before a terminal event.',
       null,
     );
+  }
+
+  /// Runs [action] returning any thrown error, or null on success.
+  Future<Object?> _guard(Future<void> Function() action) async {
+    try {
+      await action();
+      return null;
+    } catch (error) {
+      return error;
+    }
+  }
+}
+
+/// Consumes the standalone scanner's bounded batches and persists them before
+/// acknowledging — the same contract as [DiscoveryStreamConsumer], wired to a
+/// [MediaRepository].
+class DiscoveryPersistenceOrchestrator {
+  const DiscoveryPersistenceOrchestrator({
+    required this.repository,
+    this.observer,
+  });
+
+  final MediaRepository repository;
+  final DiscoveryStreamObserver? observer;
+
+  /// Drives [events] (the `MediaDiscovery.events()` stream) against the
+  /// repository, acknowledging each batch through [ackBatch] (normally
+  /// `MediaDiscovery.ackBatch`).
+  Future<DiscoveryRunSummary> run({
+    required Stream<DiscoveryEvent> events,
+    required Future<bool> Function(int sequence) ackBatch,
+  }) {
+    return DiscoveryStreamConsumer(
+      persistBatch: (event) => repository.upsertBatch(
+        event.records,
+        generationAfter: event.generationAfter,
+        accessScope: event.accessScope,
+      ),
+      observer: observer,
+    ).run(events: events, ackBatch: ackBatch);
   }
 }

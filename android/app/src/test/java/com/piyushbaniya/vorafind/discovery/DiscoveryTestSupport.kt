@@ -122,6 +122,7 @@ class RecordingSink : DiscoveryEventSink {
 class FakeQuerier(
     private val pagesByCategory: Map<ContentCategory, List<List<MediaDiscoveryRecord>>>,
     private val externalVolumes: List<String> = listOf("external_primary"),
+    private val generations: Map<Pair<ContentCategory, String>, Long> = emptyMap(),
 ) : DiscoveryQuerier {
     val queries = ConcurrentLinkedQueue<QueryRequest>()
     private val counters = ConcurrentHashMap<Pair<ContentCategory, String>, Int>()
@@ -129,6 +130,9 @@ class FakeQuerier(
     val queryCount: Int get() = queries.size
 
     override fun volumes(): List<String> = externalVolumes
+
+    override fun probeGeneration(category: ContentCategory, volumeName: String): Long? =
+        generations[category to volumeName]
 
     override fun queryPage(request: QueryRequest): QueryPage {
         queries.add(request)

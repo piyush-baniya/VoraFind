@@ -1789,10 +1789,465 @@ class MediaItemsCompanion extends UpdateCompanion<MediaItem> {
   }
 }
 
+class $IndexStateTable extends IndexState
+    with TableInfo<$IndexStateTable, IndexStateData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $IndexStateTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _volumeNameMeta = const VerificationMeta(
+    'volumeName',
+  );
+  @override
+  late final GeneratedColumn<String> volumeName = GeneratedColumn<String>(
+    'volume_name',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastGenerationMeta = const VerificationMeta(
+    'lastGeneration',
+  );
+  @override
+  late final GeneratedColumn<int> lastGeneration = GeneratedColumn<int>(
+    'last_generation',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastAccessScopeMeta = const VerificationMeta(
+    'lastAccessScope',
+  );
+  @override
+  late final GeneratedColumn<String> lastAccessScope = GeneratedColumn<String>(
+    'last_access_scope',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastSyncAtMeta = const VerificationMeta(
+    'lastSyncAt',
+  );
+  @override
+  late final GeneratedColumn<int> lastSyncAt = GeneratedColumn<int>(
+    'last_sync_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lastResultMeta = const VerificationMeta(
+    'lastResult',
+  );
+  @override
+  late final GeneratedColumn<String> lastResult = GeneratedColumn<String>(
+    'last_result',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    category,
+    volumeName,
+    lastGeneration,
+    lastAccessScope,
+    lastSyncAt,
+    lastResult,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'index_state';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<IndexStateData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('volume_name')) {
+      context.handle(
+        _volumeNameMeta,
+        volumeName.isAcceptableOrUnknown(data['volume_name']!, _volumeNameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_volumeNameMeta);
+    }
+    if (data.containsKey('last_generation')) {
+      context.handle(
+        _lastGenerationMeta,
+        lastGeneration.isAcceptableOrUnknown(
+          data['last_generation']!,
+          _lastGenerationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_access_scope')) {
+      context.handle(
+        _lastAccessScopeMeta,
+        lastAccessScope.isAcceptableOrUnknown(
+          data['last_access_scope']!,
+          _lastAccessScopeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastAccessScopeMeta);
+    }
+    if (data.containsKey('last_sync_at')) {
+      context.handle(
+        _lastSyncAtMeta,
+        lastSyncAt.isAcceptableOrUnknown(
+          data['last_sync_at']!,
+          _lastSyncAtMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_lastSyncAtMeta);
+    }
+    if (data.containsKey('last_result')) {
+      context.handle(
+        _lastResultMeta,
+        lastResult.isAcceptableOrUnknown(data['last_result']!, _lastResultMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lastResultMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {category, volumeName};
+  @override
+  IndexStateData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return IndexStateData(
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      )!,
+      volumeName: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}volume_name'],
+      )!,
+      lastGeneration: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_generation'],
+      ),
+      lastAccessScope: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_access_scope'],
+      )!,
+      lastSyncAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_sync_at'],
+      )!,
+      lastResult: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_result'],
+      )!,
+    );
+  }
+
+  @override
+  $IndexStateTable createAlias(String alias) {
+    return $IndexStateTable(attachedDatabase, alias);
+  }
+}
+
+class IndexStateData extends DataClass implements Insertable<IndexStateData> {
+  /// `ContentCategory.name` wire value.
+  final String category;
+
+  /// Absolute MediaStore volume name.
+  final String volumeName;
+
+  /// MediaStore generation token; null when unsupported or unknown.
+  final int? lastGeneration;
+
+  /// `DiscoveryAccessScope.name` wire value under which the checkpoint was taken.
+  final String lastAccessScope;
+
+  /// Epoch seconds of the checkpoint.
+  final int lastSyncAt;
+
+  /// Wire value of the last run's result kind.
+  final String lastResult;
+  const IndexStateData({
+    required this.category,
+    required this.volumeName,
+    this.lastGeneration,
+    required this.lastAccessScope,
+    required this.lastSyncAt,
+    required this.lastResult,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['category'] = Variable<String>(category);
+    map['volume_name'] = Variable<String>(volumeName);
+    if (!nullToAbsent || lastGeneration != null) {
+      map['last_generation'] = Variable<int>(lastGeneration);
+    }
+    map['last_access_scope'] = Variable<String>(lastAccessScope);
+    map['last_sync_at'] = Variable<int>(lastSyncAt);
+    map['last_result'] = Variable<String>(lastResult);
+    return map;
+  }
+
+  IndexStateCompanion toCompanion(bool nullToAbsent) {
+    return IndexStateCompanion(
+      category: Value(category),
+      volumeName: Value(volumeName),
+      lastGeneration: lastGeneration == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastGeneration),
+      lastAccessScope: Value(lastAccessScope),
+      lastSyncAt: Value(lastSyncAt),
+      lastResult: Value(lastResult),
+    );
+  }
+
+  factory IndexStateData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return IndexStateData(
+      category: serializer.fromJson<String>(json['category']),
+      volumeName: serializer.fromJson<String>(json['volumeName']),
+      lastGeneration: serializer.fromJson<int?>(json['lastGeneration']),
+      lastAccessScope: serializer.fromJson<String>(json['lastAccessScope']),
+      lastSyncAt: serializer.fromJson<int>(json['lastSyncAt']),
+      lastResult: serializer.fromJson<String>(json['lastResult']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'category': serializer.toJson<String>(category),
+      'volumeName': serializer.toJson<String>(volumeName),
+      'lastGeneration': serializer.toJson<int?>(lastGeneration),
+      'lastAccessScope': serializer.toJson<String>(lastAccessScope),
+      'lastSyncAt': serializer.toJson<int>(lastSyncAt),
+      'lastResult': serializer.toJson<String>(lastResult),
+    };
+  }
+
+  IndexStateData copyWith({
+    String? category,
+    String? volumeName,
+    Value<int?> lastGeneration = const Value.absent(),
+    String? lastAccessScope,
+    int? lastSyncAt,
+    String? lastResult,
+  }) => IndexStateData(
+    category: category ?? this.category,
+    volumeName: volumeName ?? this.volumeName,
+    lastGeneration: lastGeneration.present
+        ? lastGeneration.value
+        : this.lastGeneration,
+    lastAccessScope: lastAccessScope ?? this.lastAccessScope,
+    lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+    lastResult: lastResult ?? this.lastResult,
+  );
+  IndexStateData copyWithCompanion(IndexStateCompanion data) {
+    return IndexStateData(
+      category: data.category.present ? data.category.value : this.category,
+      volumeName: data.volumeName.present
+          ? data.volumeName.value
+          : this.volumeName,
+      lastGeneration: data.lastGeneration.present
+          ? data.lastGeneration.value
+          : this.lastGeneration,
+      lastAccessScope: data.lastAccessScope.present
+          ? data.lastAccessScope.value
+          : this.lastAccessScope,
+      lastSyncAt: data.lastSyncAt.present
+          ? data.lastSyncAt.value
+          : this.lastSyncAt,
+      lastResult: data.lastResult.present
+          ? data.lastResult.value
+          : this.lastResult,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('IndexStateData(')
+          ..write('category: $category, ')
+          ..write('volumeName: $volumeName, ')
+          ..write('lastGeneration: $lastGeneration, ')
+          ..write('lastAccessScope: $lastAccessScope, ')
+          ..write('lastSyncAt: $lastSyncAt, ')
+          ..write('lastResult: $lastResult')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    category,
+    volumeName,
+    lastGeneration,
+    lastAccessScope,
+    lastSyncAt,
+    lastResult,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is IndexStateData &&
+          other.category == this.category &&
+          other.volumeName == this.volumeName &&
+          other.lastGeneration == this.lastGeneration &&
+          other.lastAccessScope == this.lastAccessScope &&
+          other.lastSyncAt == this.lastSyncAt &&
+          other.lastResult == this.lastResult);
+}
+
+class IndexStateCompanion extends UpdateCompanion<IndexStateData> {
+  final Value<String> category;
+  final Value<String> volumeName;
+  final Value<int?> lastGeneration;
+  final Value<String> lastAccessScope;
+  final Value<int> lastSyncAt;
+  final Value<String> lastResult;
+  final Value<int> rowid;
+  const IndexStateCompanion({
+    this.category = const Value.absent(),
+    this.volumeName = const Value.absent(),
+    this.lastGeneration = const Value.absent(),
+    this.lastAccessScope = const Value.absent(),
+    this.lastSyncAt = const Value.absent(),
+    this.lastResult = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  IndexStateCompanion.insert({
+    required String category,
+    required String volumeName,
+    this.lastGeneration = const Value.absent(),
+    required String lastAccessScope,
+    required int lastSyncAt,
+    required String lastResult,
+    this.rowid = const Value.absent(),
+  }) : category = Value(category),
+       volumeName = Value(volumeName),
+       lastAccessScope = Value(lastAccessScope),
+       lastSyncAt = Value(lastSyncAt),
+       lastResult = Value(lastResult);
+  static Insertable<IndexStateData> custom({
+    Expression<String>? category,
+    Expression<String>? volumeName,
+    Expression<int>? lastGeneration,
+    Expression<String>? lastAccessScope,
+    Expression<int>? lastSyncAt,
+    Expression<String>? lastResult,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (category != null) 'category': category,
+      if (volumeName != null) 'volume_name': volumeName,
+      if (lastGeneration != null) 'last_generation': lastGeneration,
+      if (lastAccessScope != null) 'last_access_scope': lastAccessScope,
+      if (lastSyncAt != null) 'last_sync_at': lastSyncAt,
+      if (lastResult != null) 'last_result': lastResult,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  IndexStateCompanion copyWith({
+    Value<String>? category,
+    Value<String>? volumeName,
+    Value<int?>? lastGeneration,
+    Value<String>? lastAccessScope,
+    Value<int>? lastSyncAt,
+    Value<String>? lastResult,
+    Value<int>? rowid,
+  }) {
+    return IndexStateCompanion(
+      category: category ?? this.category,
+      volumeName: volumeName ?? this.volumeName,
+      lastGeneration: lastGeneration ?? this.lastGeneration,
+      lastAccessScope: lastAccessScope ?? this.lastAccessScope,
+      lastSyncAt: lastSyncAt ?? this.lastSyncAt,
+      lastResult: lastResult ?? this.lastResult,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (volumeName.present) {
+      map['volume_name'] = Variable<String>(volumeName.value);
+    }
+    if (lastGeneration.present) {
+      map['last_generation'] = Variable<int>(lastGeneration.value);
+    }
+    if (lastAccessScope.present) {
+      map['last_access_scope'] = Variable<String>(lastAccessScope.value);
+    }
+    if (lastSyncAt.present) {
+      map['last_sync_at'] = Variable<int>(lastSyncAt.value);
+    }
+    if (lastResult.present) {
+      map['last_result'] = Variable<String>(lastResult.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('IndexStateCompanion(')
+          ..write('category: $category, ')
+          ..write('volumeName: $volumeName, ')
+          ..write('lastGeneration: $lastGeneration, ')
+          ..write('lastAccessScope: $lastAccessScope, ')
+          ..write('lastSyncAt: $lastSyncAt, ')
+          ..write('lastResult: $lastResult, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $MediaItemsTable mediaItems = $MediaItemsTable(this);
+  late final $IndexStateTable indexState = $IndexStateTable(this);
   late final Index idxMediaCategoryDateModified = Index(
     'idx_media_category_date_modified',
     'CREATE INDEX idx_media_category_date_modified ON media_items (category, date_modified)',
@@ -1823,6 +2278,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     mediaItems,
+    indexState,
     idxMediaCategoryDateModified,
     idxMediaVolumeMediaStoreId,
     idxMediaMimeType,
@@ -2572,10 +3028,248 @@ typedef $$MediaItemsTableProcessedTableManager =
       MediaItem,
       PrefetchHooks Function()
     >;
+typedef $$IndexStateTableCreateCompanionBuilder = IndexStateCompanion Function({
+  required String category,
+  required String volumeName,
+  Value<int?> lastGeneration,
+  required String lastAccessScope,
+  required int lastSyncAt,
+  required String lastResult,
+  Value<int> rowid,
+});
+typedef $$IndexStateTableUpdateCompanionBuilder = IndexStateCompanion Function({
+  Value<String> category,
+  Value<String> volumeName,
+  Value<int?> lastGeneration,
+  Value<String> lastAccessScope,
+  Value<int> lastSyncAt,
+  Value<String> lastResult,
+  Value<int> rowid,
+});
+
+class $$IndexStateTableFilterComposer
+    extends Composer<_$AppDatabase, $IndexStateTable> {
+  $$IndexStateTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get volumeName => $composableBuilder(
+    column: $table.volumeName,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastGeneration => $composableBuilder(
+    column: $table.lastGeneration,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastAccessScope => $composableBuilder(
+    column: $table.lastAccessScope,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastResult => $composableBuilder(
+    column: $table.lastResult,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$IndexStateTableOrderingComposer
+    extends Composer<_$AppDatabase, $IndexStateTable> {
+  $$IndexStateTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get volumeName => $composableBuilder(
+    column: $table.volumeName,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastGeneration => $composableBuilder(
+    column: $table.lastGeneration,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastAccessScope => $composableBuilder(
+    column: $table.lastAccessScope,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get lastResult => $composableBuilder(
+    column: $table.lastResult,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$IndexStateTableAnnotationComposer
+    extends Composer<_$AppDatabase, $IndexStateTable> {
+  $$IndexStateTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
+
+  GeneratedColumn<String> get volumeName => $composableBuilder(
+    column: $table.volumeName,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastGeneration => $composableBuilder(
+    column: $table.lastGeneration,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastAccessScope => $composableBuilder(
+    column: $table.lastAccessScope,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastSyncAt => $composableBuilder(
+    column: $table.lastSyncAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastResult => $composableBuilder(
+    column: $table.lastResult,
+    builder: (column) => column,
+  );
+}
+
+class $$IndexStateTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $IndexStateTable,
+          IndexStateData,
+          $$IndexStateTableFilterComposer,
+          $$IndexStateTableOrderingComposer,
+          $$IndexStateTableAnnotationComposer,
+          $$IndexStateTableCreateCompanionBuilder,
+          $$IndexStateTableUpdateCompanionBuilder,
+          (
+            IndexStateData,
+            BaseReferences<_$AppDatabase, $IndexStateTable, IndexStateData>,
+          ),
+          IndexStateData,
+          PrefetchHooks Function()
+        > {
+  $$IndexStateTableTableManager(_$AppDatabase db, $IndexStateTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$IndexStateTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$IndexStateTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$IndexStateTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> category = const Value.absent(),
+                Value<String> volumeName = const Value.absent(),
+                Value<int?> lastGeneration = const Value.absent(),
+                Value<String> lastAccessScope = const Value.absent(),
+                Value<int> lastSyncAt = const Value.absent(),
+                Value<String> lastResult = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => IndexStateCompanion(
+                category: category,
+                volumeName: volumeName,
+                lastGeneration: lastGeneration,
+                lastAccessScope: lastAccessScope,
+                lastSyncAt: lastSyncAt,
+                lastResult: lastResult,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String category,
+                required String volumeName,
+                Value<int?> lastGeneration = const Value.absent(),
+                required String lastAccessScope,
+                required int lastSyncAt,
+                required String lastResult,
+                Value<int> rowid = const Value.absent(),
+              }) => IndexStateCompanion.insert(
+                category: category,
+                volumeName: volumeName,
+                lastGeneration: lastGeneration,
+                lastAccessScope: lastAccessScope,
+                lastSyncAt: lastSyncAt,
+                lastResult: lastResult,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$IndexStateTable, IndexStateData>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $IndexStateTable,
+                    IndexStateData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$IndexStateTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $IndexStateTable,
+      IndexStateData,
+      $$IndexStateTableFilterComposer,
+      $$IndexStateTableOrderingComposer,
+      $$IndexStateTableAnnotationComposer,
+      $$IndexStateTableCreateCompanionBuilder,
+      $$IndexStateTableUpdateCompanionBuilder,
+      (
+        IndexStateData,
+        BaseReferences<_$AppDatabase, $IndexStateTable, IndexStateData>,
+      ),
+      IndexStateData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$MediaItemsTableTableManager get mediaItems =>
       $$MediaItemsTableTableManager(_db, _db.mediaItems);
+  $$IndexStateTableTableManager get indexState =>
+      $$IndexStateTableTableManager(_db, _db.indexState);
 }
