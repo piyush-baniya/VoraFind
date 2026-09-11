@@ -10,7 +10,10 @@ units and a full-scope rescan reconciles deletions over
 `index_state` checkpoints (see §9 and `docs/persistence.md`). Local metadata
 search (Prompt #7) is implemented as keyword + filter search over the
 `searchable_text` projection with deterministic ranking (see `docs/search.md`).
-OCR, semantic search, and scheduled/resumable indexing remain unimplemented.**
+On-device OCR extraction (Prompt #8) is implemented over images as a Dart-driven,
+Kotlin-recognized pipeline with durable outcomes in `ocr_content` (see
+`docs/ocr.md`); it is decoupled from discovery (§16). Semantic search and
+scheduled/resumable background indexing remain unimplemented.**
 
 > Concrete implementation details, the exact channel contract, projections,
 > selection gating, and the record schema live in **`docs/android-discovery.md`**.
@@ -349,8 +352,9 @@ our queries**. A naive "not in result = deleted" pass would wipe the index.
 Photos/videos/audio unchanged since the last clean full-scope sync are skipped via the
 generation fast check; anything added or (re)modified on a full-scope volume is rescanned
 and upserted, and rows that disappeared are reconciled away; under partial access only
-add/update runs. Documents (SAF) and content extraction (OCR) are decoupled (§16) and
-still out of scope.
+add/update runs. Documents (SAF) are still out of scope; OCR (Prompt #8) is decoupled
+(§16) and implemented for images — it optionally re-extracts a row when
+`metadata_revision` moves, and never blocks or is blocked by discovery.
 
 ---
 
@@ -544,8 +548,10 @@ As of Prompt #5 the **`media_items`** table covers rows equivalent to `indexed_i
 plus discovery bookkeeping; `volumes/index_state/index_errors/saf_grants` are
 deferred.
 
-(OCR-final text lands later in `extracted_text`; FTS tables land with search — **not**
-in this phase, per scope control.)
+OCR-final text (Prompt #8) is already implemented and lands in its own table
+**`ocr_content`** (see `docs/persistence.md` §3.2 and `docs/ocr.md`), separate
+from `media_items` and invalidated by `metadata_revision`. FTS tables land with
+search-tooling decisions — **not** in this phase, per scope control.
 
 ### 15.2 Indexing rules
 
@@ -563,17 +569,24 @@ in this phase, per scope control.)
 
 ## 16. OCR / Content-Extraction Boundary
 
-Extraction is **out of scope for launch**, but the boundary is defined now so
-discovery does not need to be re-architected later.
+Discovery (this doc) ends at **metadata in `indexed_items`**. Content
+extraction is a **separate queue** keyed by stable key, driven by its own
+orchestrator, reading content via content URIs — it never blocks discovery and
+discovery never waits on it.
 
-- Discovery (this doc) ends at **metadata in `indexed_items`**.
-- Extraction is a **separate queue** keyed by `stableKey` (`extractionState`), driven
-  by its own provider class that will read content via `resolveContentUri`.
-- Extraction never blocks discovery; discovery never waits on extraction.
-- OCR text, when implemented, is on-device only (ML Kit on-device or similar), stored
-  in its own table, and searchable only after explicit opt-in where warranted.
-- The screenshot utility of VoraFind is served immediately by filenames + folder +
-  dates; OCR only *augments* it later.
+**Prompt #8 implemented this boundary for images**: `OcrCoordinator` (Dart)
+drains a bounded pending queue from `ocr_content` (`docs/persistence.md` §3.2,
+`docs/ocr.md`), calls the native `vorafind/ocr` channel, and persists durable
+`pending|completed|failed|unsupported` outcomes. Extraction is on-device only
+(ML Kit `text-recognition` **bundled** model — no download, no network) and is
+searchable through the same search pipeline as metadata with a dedicated
+rank weight (`docs/search.md` §3.4). It is exposed to the UI as one progress
+line on the home screen, started on app resume and cancelled on pause
+(AGENTS.md §22 — battery-conscious, no background worker in this phase).
+
+Future extraction domains (PDFs, documents, video/audio transcripts) reuse the
+same queue/status/cooldown machinery; the `OcrDetector` seam is their extension
+point. Only raster image types are in scope today.
 
 ---
 
@@ -628,11 +641,14 @@ Hierarchy of guarantees:
 ## 19. Privacy & Security Model
 
 - **Data-at-rest:** everything lives in app-private SQLite; indexed media metadata
-  does not include bytes, embedded EXIF, GPS, or OCR text at MVP.
+  does not include bytes, embedded EXIF, GPS, or derived body text at MVP —
+  OCR text is kept in its own table (`ocr_content`, Prompt #8) with its own
+  access path.
 - **Data-in-motion:** zero network. No backend, no analytics of content.
-- **Derived-data distinction:** `indexed_items` (derived metadata) vs. original files
-  (untouched). Thumbnails/extracted text (future) live under app-private storage,
-  clearly separate and re-derivable.
+- **Derived-data distinction:** `indexed_items` (derived metadata),
+  `ocr_content` (derived text), vs. original files (untouched).
+  Thumbnails (future) live under app-private storage, clearly separate
+  and re-derivable.
 - **Platform:** no `ACCESS_MEDIA_LOCATION`, no all-files access, no microphone/SMS/
   contacts/location permissions; minimal manifest permissions only.
 - **Channel security:** native→Dart events never carry file bytes; only stable keys.
@@ -787,10 +803,8 @@ Guarantees this architecture gives us:
 - **Phase 2 (search)** — deterministic search over the index (exact/keyword/fuzzy),
   ranking rationale, "matched in …" explanation strings.
 - **Phase 3 (content UX)** — opening files, thumbnails, filter/collection views.
-- **Phase 4 (extraction)** — on-device OCR / text extraction queue layered over
-  discovery, never blocking it.
 - **Phase 5 (optional extensions, each pre-approved)** — semantic search embeddings,
-  duplicate detection, cross-device (stays local-first), power-user all-files mode.
+   duplicate detection, cross-device (stays local-first), power-user all-files mode.
 
 Nothing in Phases 2–5 is implemented by the change that produces this document.
 

@@ -23,8 +23,8 @@ void main() {
       expect(SearchNormalizer.canonical('   - _ . '), '');
     });
 
-    test('keeps unicode letters? no — folds to ascii alnum only', () {
-      expect(SearchNormalizer.canonical('café 東京 123'), 'caf 123');
+    test('keeps unicode letters and digits (metadata and OCR text)', () {
+      expect(SearchNormalizer.canonical('café 東京 123'), 'café 東京 123');
     });
   });
 

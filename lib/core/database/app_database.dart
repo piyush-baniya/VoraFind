@@ -1,22 +1,28 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 
+import '../ocr/ocr_models.dart' show OcrStatus, OcrStatusConverter;
 import '../search/search_normalizer.dart';
 import 'index_state_table.dart';
 import 'media_items_table.dart';
+import 'ocr_content_table.dart';
 
 part 'app_database.g.dart';
 
-/// VoraFind's local, on-device database. Owns the durable media index.
+/// VoraFind's local, on-device database. Owns the durable media index and its
+/// derived enrichment.
 ///
 /// Flutter owns this database (AGENTS.md §6); the native Android layer never
 /// writes SQLite tables directly. Schema v2 adds `index_state`, the per-unit
 /// checkpoint table for incremental synchronization. Schema v3 adds
 /// `media_items.searchable_text`, the normalized keyword-retrieval projection
-/// for local metadata search (docs `search.md`). Future tables (`ocr_content`,
-/// `text_index`, `image_features`, `video_segments`, `audio_transcripts`, …)
+/// for local metadata search (docs `search.md`). Schema v4 adds
+/// `ocr_content`, the on-device OCR text enrichment for images (docs
+/// `ocr.md`) and lifts the normalizer to Unicode-aware folding so that rows
+/// re-backfilled at v4 match OCR text the same way. Future tables
+/// (`text_index`, `image_features`, `video_segments`, `audio_transcripts`, …)
 /// are deliberately deferred (see `docs/persistence.md`).
-@DriftDatabase(tables: [MediaItems, IndexState])
+@DriftDatabase(tables: [MediaItems, IndexState, OcrContent])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
@@ -25,7 +31,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forApp() : super(driftDatabase(name: 'vorafind'));
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -38,6 +44,13 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 3) {
         await m.addColumn(mediaItems, mediaItems.searchableText);
+        await _backfillSearchableText();
+      }
+      if (from < 4) {
+        await m.createTable(ocrContent);
+        // Re-run the backfill: schema v4 switched the normalizer to
+        // Unicode-aware folding, so existing rows must be re-normalized or
+        // they would stop matching (Prompt #8 §20).
         await _backfillSearchableText();
       }
     },

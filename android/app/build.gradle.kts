@@ -48,6 +48,15 @@ dependencies {
     // JVM unit tests for the pure capability/permission state logic.
     // Test-only dependency; does not affect the APK.
     testImplementation("junit:junit:4.13.2")
+
+    // Local, bundled ML Kit text recognition (on-device OCR; bundled model
+    // means no Play Services download and full offline use). Note: the bundled
+    // model adds ~20MB to the APK. Trade-off accepted for off-device OCR.
+    implementation("com.google.mlkit:text-recognition:16.0.1")
+
+    // EXIF orientation for correct OCR of camera photos (auto-rotation needs
+    // API 28+ ImageDecoder; using this keeps a single decode path on minSdk 24).
+    implementation("androidx.exifinterface:exifinterface:1.4.1")
 }
 
 flutter {

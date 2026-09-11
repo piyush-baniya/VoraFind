@@ -2305,11 +2305,570 @@ class IndexStateCompanion extends UpdateCompanion<IndexStateData> {
   }
 }
 
+class $OcrContentTable extends OcrContent
+    with TableInfo<$OcrContentTable, OcrContentData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $OcrContentTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _mediaStableKeyMeta = const VerificationMeta(
+    'mediaStableKey',
+  );
+  @override
+  late final GeneratedColumn<String> mediaStableKey = GeneratedColumn<String>(
+    'media_stable_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _rawTextMeta = const VerificationMeta(
+    'rawText',
+  );
+  @override
+  late final GeneratedColumn<String> rawText = GeneratedColumn<String>(
+    'raw_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _normalizedTextMeta = const VerificationMeta(
+    'normalizedText',
+  );
+  @override
+  late final GeneratedColumn<String> normalizedText = GeneratedColumn<String>(
+    'normalized_text',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<OcrStatus, String> status =
+      GeneratedColumn<String>(
+        'status',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<OcrStatus>($OcrContentTable.$converterstatus);
+  static const VerificationMeta _sourceRevisionMeta = const VerificationMeta(
+    'sourceRevision',
+  );
+  @override
+  late final GeneratedColumn<int> sourceRevision = GeneratedColumn<int>(
+    'source_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _errorCodeMeta = const VerificationMeta(
+    'errorCode',
+  );
+  @override
+  late final GeneratedColumn<String> errorCode = GeneratedColumn<String>(
+    'error_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    mediaStableKey,
+    rawText,
+    normalizedText,
+    status,
+    sourceRevision,
+    createdAt,
+    updatedAt,
+    errorCode,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ocr_content';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<OcrContentData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('media_stable_key')) {
+      context.handle(
+        _mediaStableKeyMeta,
+        mediaStableKey.isAcceptableOrUnknown(
+          data['media_stable_key']!,
+          _mediaStableKeyMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_mediaStableKeyMeta);
+    }
+    if (data.containsKey('raw_text')) {
+      context.handle(
+        _rawTextMeta,
+        rawText.isAcceptableOrUnknown(data['raw_text']!, _rawTextMeta),
+      );
+    }
+    if (data.containsKey('normalized_text')) {
+      context.handle(
+        _normalizedTextMeta,
+        normalizedText.isAcceptableOrUnknown(
+          data['normalized_text']!,
+          _normalizedTextMeta,
+        ),
+      );
+    }
+    if (data.containsKey('source_revision')) {
+      context.handle(
+        _sourceRevisionMeta,
+        sourceRevision.isAcceptableOrUnknown(
+          data['source_revision']!,
+          _sourceRevisionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceRevisionMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    if (data.containsKey('error_code')) {
+      context.handle(
+        _errorCodeMeta,
+        errorCode.isAcceptableOrUnknown(data['error_code']!, _errorCodeMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {mediaStableKey};
+  @override
+  OcrContentData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return OcrContentData(
+      mediaStableKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}media_stable_key'],
+      )!,
+      rawText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}raw_text'],
+      ),
+      normalizedText: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}normalized_text'],
+      ),
+      status: $OcrContentTable.$converterstatus.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}status'],
+        )!,
+      ),
+      sourceRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_revision'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+      errorCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_code'],
+      ),
+    );
+  }
+
+  @override
+  $OcrContentTable createAlias(String alias) {
+    return $OcrContentTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<OcrStatus, String> $converterstatus =
+      const OcrStatusConverter();
+}
+
+class OcrContentData extends DataClass implements Insertable<OcrContentData> {
+  /// `media_items.stable_key` this enrichment belongs to.
+  final String mediaStableKey;
+
+  /// Raw recognized text; null for failed/unsupported rows.
+  ///
+  /// Named `rawText` (SQL `raw_text`), not `text`, because drift_dev resolves a
+  /// column getter named `text` against its own `text()` builder and crashes
+  /// while analyzing the table.
+  final String? rawText;
+
+  /// Normalized search projection (`SearchNormalizer.canonical`) — the column
+  /// `searchOcrCandidates` substring-matches. Null for failed/unsupported.
+  final String? normalizedText;
+
+  /// Durable status (see [OcrStatus]).
+  final OcrStatus status;
+
+  /// `media_items.metadata_revision` this recognition was produced from.
+  final int sourceRevision;
+
+  /// Epoch seconds of the first write.
+  final int createdAt;
+
+  /// Epoch seconds of the most recent write (drives retry cooldowns).
+  final int updatedAt;
+
+  /// Stable failure code (`OcrErrorCode.name`); null when not an error.
+  final String? errorCode;
+  const OcrContentData({
+    required this.mediaStableKey,
+    this.rawText,
+    this.normalizedText,
+    required this.status,
+    required this.sourceRevision,
+    required this.createdAt,
+    required this.updatedAt,
+    this.errorCode,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['media_stable_key'] = Variable<String>(mediaStableKey);
+    if (!nullToAbsent || rawText != null) {
+      map['raw_text'] = Variable<String>(rawText);
+    }
+    if (!nullToAbsent || normalizedText != null) {
+      map['normalized_text'] = Variable<String>(normalizedText);
+    }
+    {
+      map['status'] = Variable<String>(
+        $OcrContentTable.$converterstatus.toSql(status),
+      );
+    }
+    map['source_revision'] = Variable<int>(sourceRevision);
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    if (!nullToAbsent || errorCode != null) {
+      map['error_code'] = Variable<String>(errorCode);
+    }
+    return map;
+  }
+
+  OcrContentCompanion toCompanion(bool nullToAbsent) {
+    return OcrContentCompanion(
+      mediaStableKey: Value(mediaStableKey),
+      rawText: rawText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(rawText),
+      normalizedText: normalizedText == null && nullToAbsent
+          ? const Value.absent()
+          : Value(normalizedText),
+      status: Value(status),
+      sourceRevision: Value(sourceRevision),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+      errorCode: errorCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorCode),
+    );
+  }
+
+  factory OcrContentData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return OcrContentData(
+      mediaStableKey: serializer.fromJson<String>(json['mediaStableKey']),
+      rawText: serializer.fromJson<String?>(json['rawText']),
+      normalizedText: serializer.fromJson<String?>(json['normalizedText']),
+      status: serializer.fromJson<OcrStatus>(json['status']),
+      sourceRevision: serializer.fromJson<int>(json['sourceRevision']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+      errorCode: serializer.fromJson<String?>(json['errorCode']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'mediaStableKey': serializer.toJson<String>(mediaStableKey),
+      'rawText': serializer.toJson<String?>(rawText),
+      'normalizedText': serializer.toJson<String?>(normalizedText),
+      'status': serializer.toJson<OcrStatus>(status),
+      'sourceRevision': serializer.toJson<int>(sourceRevision),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+      'errorCode': serializer.toJson<String?>(errorCode),
+    };
+  }
+
+  OcrContentData copyWith({
+    String? mediaStableKey,
+    Value<String?> rawText = const Value.absent(),
+    Value<String?> normalizedText = const Value.absent(),
+    OcrStatus? status,
+    int? sourceRevision,
+    int? createdAt,
+    int? updatedAt,
+    Value<String?> errorCode = const Value.absent(),
+  }) => OcrContentData(
+    mediaStableKey: mediaStableKey ?? this.mediaStableKey,
+    rawText: rawText.present ? rawText.value : this.rawText,
+    normalizedText: normalizedText.present
+        ? normalizedText.value
+        : this.normalizedText,
+    status: status ?? this.status,
+    sourceRevision: sourceRevision ?? this.sourceRevision,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+    errorCode: errorCode.present ? errorCode.value : this.errorCode,
+  );
+  OcrContentData copyWithCompanion(OcrContentCompanion data) {
+    return OcrContentData(
+      mediaStableKey: data.mediaStableKey.present
+          ? data.mediaStableKey.value
+          : this.mediaStableKey,
+      rawText: data.rawText.present ? data.rawText.value : this.rawText,
+      normalizedText: data.normalizedText.present
+          ? data.normalizedText.value
+          : this.normalizedText,
+      status: data.status.present ? data.status.value : this.status,
+      sourceRevision: data.sourceRevision.present
+          ? data.sourceRevision.value
+          : this.sourceRevision,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OcrContentData(')
+          ..write('mediaStableKey: $mediaStableKey, ')
+          ..write('rawText: $rawText, ')
+          ..write('normalizedText: $normalizedText, ')
+          ..write('status: $status, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('errorCode: $errorCode')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    mediaStableKey,
+    rawText,
+    normalizedText,
+    status,
+    sourceRevision,
+    createdAt,
+    updatedAt,
+    errorCode,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is OcrContentData &&
+          other.mediaStableKey == this.mediaStableKey &&
+          other.rawText == this.rawText &&
+          other.normalizedText == this.normalizedText &&
+          other.status == this.status &&
+          other.sourceRevision == this.sourceRevision &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt &&
+          other.errorCode == this.errorCode);
+}
+
+class OcrContentCompanion extends UpdateCompanion<OcrContentData> {
+  final Value<String> mediaStableKey;
+  final Value<String?> rawText;
+  final Value<String?> normalizedText;
+  final Value<OcrStatus> status;
+  final Value<int> sourceRevision;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<String?> errorCode;
+  final Value<int> rowid;
+  const OcrContentCompanion({
+    this.mediaStableKey = const Value.absent(),
+    this.rawText = const Value.absent(),
+    this.normalizedText = const Value.absent(),
+    this.status = const Value.absent(),
+    this.sourceRevision = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.errorCode = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  OcrContentCompanion.insert({
+    required String mediaStableKey,
+    this.rawText = const Value.absent(),
+    this.normalizedText = const Value.absent(),
+    required OcrStatus status,
+    required int sourceRevision,
+    required int createdAt,
+    required int updatedAt,
+    this.errorCode = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : mediaStableKey = Value(mediaStableKey),
+       status = Value(status),
+       sourceRevision = Value(sourceRevision),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<OcrContentData> custom({
+    Expression<String>? mediaStableKey,
+    Expression<String>? rawText,
+    Expression<String>? normalizedText,
+    Expression<String>? status,
+    Expression<int>? sourceRevision,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<String>? errorCode,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (mediaStableKey != null) 'media_stable_key': mediaStableKey,
+      if (rawText != null) 'raw_text': rawText,
+      if (normalizedText != null) 'normalized_text': normalizedText,
+      if (status != null) 'status': status,
+      if (sourceRevision != null) 'source_revision': sourceRevision,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (errorCode != null) 'error_code': errorCode,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  OcrContentCompanion copyWith({
+    Value<String>? mediaStableKey,
+    Value<String?>? rawText,
+    Value<String?>? normalizedText,
+    Value<OcrStatus>? status,
+    Value<int>? sourceRevision,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<String?>? errorCode,
+    Value<int>? rowid,
+  }) {
+    return OcrContentCompanion(
+      mediaStableKey: mediaStableKey ?? this.mediaStableKey,
+      rawText: rawText ?? this.rawText,
+      normalizedText: normalizedText ?? this.normalizedText,
+      status: status ?? this.status,
+      sourceRevision: sourceRevision ?? this.sourceRevision,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      errorCode: errorCode ?? this.errorCode,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (mediaStableKey.present) {
+      map['media_stable_key'] = Variable<String>(mediaStableKey.value);
+    }
+    if (rawText.present) {
+      map['raw_text'] = Variable<String>(rawText.value);
+    }
+    if (normalizedText.present) {
+      map['normalized_text'] = Variable<String>(normalizedText.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(
+        $OcrContentTable.$converterstatus.toSql(status.value),
+      );
+    }
+    if (sourceRevision.present) {
+      map['source_revision'] = Variable<int>(sourceRevision.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (errorCode.present) {
+      map['error_code'] = Variable<String>(errorCode.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('OcrContentCompanion(')
+          ..write('mediaStableKey: $mediaStableKey, ')
+          ..write('rawText: $rawText, ')
+          ..write('normalizedText: $normalizedText, ')
+          ..write('status: $status, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $MediaItemsTable mediaItems = $MediaItemsTable(this);
   late final $IndexStateTable indexState = $IndexStateTable(this);
+  late final $OcrContentTable ocrContent = $OcrContentTable(this);
   late final Index idxMediaCategoryDateModified = Index(
     'idx_media_category_date_modified',
     'CREATE INDEX idx_media_category_date_modified ON media_items (category, date_modified)',
@@ -2341,6 +2900,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     mediaItems,
     indexState,
+    ocrContent,
     idxMediaCategoryDateModified,
     idxMediaVolumeMediaStoreId,
     idxMediaMimeType,
@@ -3347,6 +3907,277 @@ typedef $$IndexStateTableProcessedTableManager =
       IndexStateData,
       PrefetchHooks Function()
     >;
+typedef $$OcrContentTableCreateCompanionBuilder = OcrContentCompanion Function({
+  required String mediaStableKey,
+  Value<String?> rawText,
+  Value<String?> normalizedText,
+  required OcrStatus status,
+  required int sourceRevision,
+  required int createdAt,
+  required int updatedAt,
+  Value<String?> errorCode,
+  Value<int> rowid,
+});
+typedef $$OcrContentTableUpdateCompanionBuilder = OcrContentCompanion Function({
+  Value<String> mediaStableKey,
+  Value<String?> rawText,
+  Value<String?> normalizedText,
+  Value<OcrStatus> status,
+  Value<int> sourceRevision,
+  Value<int> createdAt,
+  Value<int> updatedAt,
+  Value<String?> errorCode,
+  Value<int> rowid,
+});
+
+class $$OcrContentTableFilterComposer
+    extends Composer<_$AppDatabase, $OcrContentTable> {
+  $$OcrContentTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get mediaStableKey => $composableBuilder(
+    column: $table.mediaStableKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get rawText => $composableBuilder(
+    column: $table.rawText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get normalizedText => $composableBuilder(
+    column: $table.normalizedText,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<OcrStatus, OcrStatus, String> get status =>
+      $composableBuilder(
+        column: $table.status,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$OcrContentTableOrderingComposer
+    extends Composer<_$AppDatabase, $OcrContentTable> {
+  $$OcrContentTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get mediaStableKey => $composableBuilder(
+    column: $table.mediaStableKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get rawText => $composableBuilder(
+    column: $table.rawText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get normalizedText => $composableBuilder(
+    column: $table.normalizedText,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$OcrContentTableAnnotationComposer
+    extends Composer<_$AppDatabase, $OcrContentTable> {
+  $$OcrContentTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get mediaStableKey => $composableBuilder(
+    column: $table.mediaStableKey,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get rawText =>
+      $composableBuilder(column: $table.rawText, builder: (column) => column);
+
+  GeneratedColumn<String> get normalizedText => $composableBuilder(
+    column: $table.normalizedText,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<OcrStatus, String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get errorCode =>
+      $composableBuilder(column: $table.errorCode, builder: (column) => column);
+}
+
+class $$OcrContentTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $OcrContentTable,
+          OcrContentData,
+          $$OcrContentTableFilterComposer,
+          $$OcrContentTableOrderingComposer,
+          $$OcrContentTableAnnotationComposer,
+          $$OcrContentTableCreateCompanionBuilder,
+          $$OcrContentTableUpdateCompanionBuilder,
+          (
+            OcrContentData,
+            BaseReferences<_$AppDatabase, $OcrContentTable, OcrContentData>,
+          ),
+          OcrContentData,
+          PrefetchHooks Function()
+        > {
+  $$OcrContentTableTableManager(_$AppDatabase db, $OcrContentTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$OcrContentTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$OcrContentTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$OcrContentTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> mediaStableKey = const Value.absent(),
+                Value<String?> rawText = const Value.absent(),
+                Value<String?> normalizedText = const Value.absent(),
+                Value<OcrStatus> status = const Value.absent(),
+                Value<int> sourceRevision = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<String?> errorCode = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OcrContentCompanion(
+                mediaStableKey: mediaStableKey,
+                rawText: rawText,
+                normalizedText: normalizedText,
+                status: status,
+                sourceRevision: sourceRevision,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                errorCode: errorCode,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String mediaStableKey,
+                Value<String?> rawText = const Value.absent(),
+                Value<String?> normalizedText = const Value.absent(),
+                required OcrStatus status,
+                required int sourceRevision,
+                required int createdAt,
+                required int updatedAt,
+                Value<String?> errorCode = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => OcrContentCompanion.insert(
+                mediaStableKey: mediaStableKey,
+                rawText: rawText,
+                normalizedText: normalizedText,
+                status: status,
+                sourceRevision: sourceRevision,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                errorCode: errorCode,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$OcrContentTable, OcrContentData>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $OcrContentTable,
+                    OcrContentData
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$OcrContentTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $OcrContentTable,
+      OcrContentData,
+      $$OcrContentTableFilterComposer,
+      $$OcrContentTableOrderingComposer,
+      $$OcrContentTableAnnotationComposer,
+      $$OcrContentTableCreateCompanionBuilder,
+      $$OcrContentTableUpdateCompanionBuilder,
+      (
+        OcrContentData,
+        BaseReferences<_$AppDatabase, $OcrContentTable, OcrContentData>,
+      ),
+      OcrContentData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3355,4 +4186,6 @@ class $AppDatabaseManager {
       $$MediaItemsTableTableManager(_db, _db.mediaItems);
   $$IndexStateTableTableManager get indexState =>
       $$IndexStateTableTableManager(_db, _db.indexState);
+  $$OcrContentTableTableManager get ocrContent =>
+      $$OcrContentTableTableManager(_db, _db.ocrContent);
 }

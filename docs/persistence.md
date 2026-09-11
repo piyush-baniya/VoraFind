@@ -5,7 +5,9 @@ transactional batch upserts, persist-then-ACK orchestration, `index_state`
 checkpoints (schema v2), and a `SynchronizationCoordinator` that performs
 generation fast-checks and bounded deletion reconciliation. Schema v3 (Prompt
 #7) adds the normalized `searchable_text` retrieval projection with a paged
-one-time backfill for pre-v3 rows.**
+one-time backfill for pre-v3 rows. Schema v4 (Prompt #8) adds `ocr_content`
+(PK on `media_stable_key`, FK cascade) — the per-file durable OCR outcome
+(see `docs/ocr.md`).**
 
 Last updated: 2026-09-11
 
@@ -94,6 +96,28 @@ One row per synchronization unit. Row type `IndexState`, generated into
 - A checkpoint is written **only after a full clean success**; there is no
   mid-batch/mid-run persistence (see §7 bis).
 
+### 3.2 `ocr_content` — per-file OCR outcomes (v4)
+
+One row per recognized (or deliberately skipped) image file. Row type
+`OcrContent`, generated into `app_database.g.dart`. `media_stable_key` is a
+`PRIMARY KEY` and a `FOREIGN KEY` to `media_items(stable_key) ON DELETE
+CASCADE`, so deleting a media row (or `clearAll`) always removes its derived
+OCR text:
+
+| Column | Type | Notes |
+|---|---|---|
+| `media_stable_key` | TEXT PK/FK | mirrors `media_items.stable_key` (`<volume>:<id>`) |
+| `raw_text` | TEXT? | recognizer output verbatim; null on failed/unsupported |
+| `normalized_text` | TEXT? | same normalizer as `searchable_text` (docs/search.md §3.1), so query and index agree |
+| `status` | TEXT | `OcrStatusConverter` → `pending\|completed\|failed\|unsupported` |
+| `source_revision` | INT | `media_items.metadata_revision` at extraction time — the **invalidation anchor** (re-OCR when it moves) |
+| `created_at` / `updated_at` | INT | epoch seconds bookkeeping |
+| `error_code` | TEXT? | wire error name (`decodeFailed`/`uriUnavailable`/…) for diagnostics |
+
+Index: a covering `(status, media_stable_key)` index drives the pending-queue
+pagination in `findOcrCandidates` (§7). The full lifecycle, error mapping, and
+cooldown policy live in `docs/ocr.md`.
+
 ## 4. Identity & Upsert Semantics
 
 - **Stable key** = `volumeName:mediaStoreId`. MediaStore `_ID`s are stable per
@@ -169,6 +193,20 @@ interface only.
 - `getSyncCheckpoint(category, volume)` / `saveSyncCheckpoint(category, volume, …)`
   → `SyncCheckpoint?` over `index_state`
 
+OCR (schema v4, see `docs/ocr.md`):
+
+- `findOcrCandidates({batchSize, nowEpochSeconds})` → pages of pending images
+  (`pending` rows, rows whose `metadata_revision > source_revision`, and
+  `failed` rows past the cooldown), bounded via the `(status, stable_key)` index
+- `saveOcrResult({stableKey, text, status, sourceRevision, nowEpochSeconds, errorCode})`
+  → atomic upsert of one row's durable outcome
+- `getOcrStatus(stableKey)` → `OcrStatusRow?` (status/revision/errors) for tests
+  and diagnostics
+- `searchOcrCandidates(prepared)` → OCR-text candidates for search (keyword OR
+  over `normalized_text`, coverage-ordered, pool-bounded — mirrors the metadata
+  search path)
+- `ocrStats()` → `OcrStats{eligible}` (supported-mime image rows, any scope)
+
 `nowSeconds` is injectable for deterministic tests; production uses epoch seconds.
 
 ## 7 bis. Synchronization pipeline
@@ -206,33 +244,37 @@ as a provider, keeping the persistence seam obvious.
 
 ## 9. Migrations
 
-- `schemaVersion = 3`. `onCreate` builds both tables. `onUpgrade`:
+- `schemaVersion = 4`. `onCreate` builds all three tables. `onUpgrade`:
   - `from < 2` — adds `index_state` (the only v1→v2 delta; `media_items` DDL is unchanged).
   - `from < 3` — adds `media_items.searchable_text` and backfills existing rows
     with a **paged** sweep (`stable_key` keyset, page size 500) so memory stays
     bounded regardless of library size. Backfill never alters stored metadata,
     only the derived projection; new/extracted rows take the same path via
     `MediaItemMapper`, which maintains `searchable_text` durably on every write.
+  - `from < 4` — creates `ocr_content` + its covering index. Fresh installs and
+    upgrades share the schema; `OcrStatusConverter` lives on `app_database.dart`
+    so codegen sees it.
 - The authoritative schema snapshots are committed at
-  `drift_schemas/drift_schema_v1.json`, `drift_schema_v2.json`, and
-  `drift_schema_v3.json` (generated via `dart run drift_dev schema dump
-  lib/core/database/app_database.dart drift_schemas/`).
-- Migration tests: fresh install asserts `PRAGMA user_version = 3` + full column
-  set (incl. `searchable_text`); an upgrade test crafts an in-place v1 database
-  (`DROP TABLE index_state` + `DROP COLUMN searchable_text` + `user_version = 1`
-  + a `media_items` row), reopens, and asserts data survived, `index_state` was
-  created, `searchable_text` was backfilled, and `user_version == 3`. A second
-  upgrade test crafts an in-place v2 database (`DROP COLUMN searchable_text` +
-  `user_version = 2`, keeping `index_state`), reopens, and asserts backfill
-  fidelity for an audio row's full projection.
+  `drift_schemas/drift_schema_v1.json` … `drift_schema_v4.json` (generated via
+  `dart run drift_dev schema dump lib/core/database/app_database.dart drift_schemas/`).
+- Migration tests: fresh install asserts `PRAGMA user_version = 4` + full column
+  set (incl. `searchable_text` and the `ocr_content` table); an upgrade test
+  crafts an in-place v1 database (`DROP TABLE index_state` + `DROP COLUMN
+  searchable_text` + `DROP TABLE ocr_content` + `user_version = 1` + a
+  `media_items` row), reopens, and asserts data survived, `index_state` and
+  `ocr_content` were created, `searchable_text` was backfilled, and
+  `user_version == 4`. A second upgrade test crafts an in-place v3 database
+  (`DROP TABLE ocr_content` + `user_version = 3`, keeping `searchable_text`),
+  reopens, and asserts `ocr_content` is created, writable, and cascades deletes.
 
 ## 10. Out of Scope (deferred, do not implement)
 
 `volumes`/`index_errors`/`saf_grants` tables, document (SAF) ingestion, the
 N-pass deletion grace period, drift-watcher-based polling, coverage of
-`searchable_text` beyond current fields (OCR/text extraction, captions, audio
-transcripts; see `docs/search.md`), thumbnails, embeddings, scheduled/WorkManager
-indexing. The schema leaves room for these; none are built here.
+`searchable_text` beyond current fields (captions, audio transcripts; see
+`docs/search.md`), thumbnails, embeddings, scheduled/WorkManager indexing. The
+schema leaves room for these; none are built here. (OCR — `ocr_content` — is
+now implemented, `docs/ocr.md`.)
 
 ## 11. Privacy
 

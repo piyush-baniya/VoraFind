@@ -13,6 +13,10 @@ enum SearchField {
   album,
   albumArtist,
   genre,
+
+  /// Text recognized in an image body (OCR). Weighted between folder context
+  /// and title by [SearchRanker] — see `docs/search.md` §Ranking.
+  ocrText,
 }
 
 /// How strongly one token matched one field value.

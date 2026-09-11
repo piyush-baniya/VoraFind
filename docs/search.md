@@ -2,8 +2,10 @@
 
 Status: **Implemented (Prompt #7) — keyword + metadata search over the local
 index with deterministic ranking, explainable match context, and a live
-debounced search UI. Scope is deliberately metadata-only: no OCR, no document
-text, no embeddings, no semantic search.**
+debounced search UI. Prompt #8 extends the projection with on-device OCR
+body text (`ocr_content`, see `docs/ocr.md`): metadata and OCR retrieval run
+in parallel, merge and deduplicate by stable key, and OCR hits are explained as
+"Matched in OCR text".**
 
 Last updated: 2026-09-11
 
@@ -40,9 +42,14 @@ projection is derived, **not** recomputed on read:
 | `artist` | yes |
 | `album` | yes |
 
-Not included (future): album artist, genre, OCR text, PDF/Word text, captions,
-captions/transcripts, image features. Such content would add columns, not change
-the architecture.
+A second, **parallel** retrieval path reads `ocr_content.normalized_text`
+(Prompt #8): the body text ML Kit extracted from the image itself (`.jpg`,
+`.png`, `.webp`, `.bmp`, `.gif`). Its results are merged with metadata results
+and deduplicated by stable key (§3.4). Both paths use the same normalizer, so a
+user's typing and the indexed text always agree.
+
+Not included (future): captions, audio transcripts, PDF/Word text, image
+features. Such content would add columns, not change the architecture.
 
 ### Filters (metadata, not text)
 
@@ -60,9 +67,11 @@ Independent of keywords, a query can carry:
 ```
 query text ──▶ normalize ──▶ interpret ──▶ SearchQuery
                                                │
-   MediaItem.searchableText ── raw row pool (SQL, bounded) ◀── limit
-                                     │
-                               rank (Dart) ──▶ SearchResult[limit]
+   MediaItem.searchableText ── raw row pool (SQL, bounded) ─┐
+   ocr_content.normalizedText ── OCR row pool (SQL, bounded)┤ parallel
+                                                             │
+                        rank (Dart) ◀──── merge by stableKey ┘
+                                     ──▶ SearchResult[limit]
 ```
 
 ### 3.1 Normalization
@@ -115,6 +124,14 @@ full-library scan:
 - The `(category, date_modified)` index serves the common "filter then recency"
   shapes; keyword filtering is capped so a full `searchable_text` scan of the
   **pool** only ever reads a few thousand rows at most.
+- **OCR path (`searchOcrCandidates`, Prompt #8).** Runs in parallel and
+  consults only `completed` rows: keyword predicate = OR of
+  `instr(normalized_text, token) > 0`, `ORDER BY` a computed coverage
+  expression (omitted entirely when the query has no alphanumeric tokens —
+  SQLite treats `ORDER BY (0)` as a column index), then `stable_key ASC` for
+  determinism. Pool bound mirrors metadata (`min(limit × 4, 400)`), pages via
+  the `(status, stable_key)` index. Empty queries skip OCR entirely (no
+  expensive scan for a blank box).
 
 ### 3.4 Ranking
 
@@ -125,6 +142,7 @@ and why they exist:
 |---|---|---|
 | `display_name` match | 50 | the file name is what users most often half-remember |
 | `title` match | 44 | second most-memorized metadata (nominal for audio) |
+| `ocrText` match | 20 | body text proves *content* relevance — stronger than folder, weaker than remembered name/title |
 | `relative_path` / `bucket_display_name` | 12 | folder context ("I saved it in X") |
 | `artist` / `album` | 8 | audio identity when title is missed |
 
@@ -143,7 +161,11 @@ instead of a meaningless relevance number (AGENTS.md §17).
 `SearchService` validates/bounds the query (negative or inverted ranges →
 `SearchException.invalidQuery`; limit clamped to `[1, 200]`, default 50) and maps
 repository failures to `SearchException.database`. Empty queries short-circuit to
-zero results with no database touch.
+zero results with no database touch. When a keyword query has content, metadata
+and OCR retrieval run concurrently (`(…) .wait`, §3.3); `_merge` deduplicates by
+stable key, keeping the metadata row when both pools hit it and attaching its
+OCR text so body matches still score. A filter-only query skips the OCR path
+(OCR adds no filtering dimension in this phase).
 
 `searchResultsProvider` (`SearchResultsNotifier`) holds the async state
 (`idle | loading | data | error`) and guards with a **generation counter +**
@@ -155,18 +177,18 @@ generation guard.
 
 FTS5 (or a token table) is the standard bulletproof answer for text search, and
 the AGENTS.md guidance is to reconsider external indexing when it demonstrably
-wins. Today it does not:
+wins. Today it does not (this now includes OCR text):
 
-- Searchable volume is **metadata of personal libraries**. Even a dense 10 k-file
-  library is ~10–20 MB of text and tens of "rows touching a token." A bounded
-  `LIKE '%t%'` scan over the pool (≤ `min(limit × 4, 400)` rows) is a handful of
-  milliseconds on SQLite.
+- Searchable volume is **metadata + OCR text of personal libraries**. Even a
+  dense 10 k-file library is ~10–20 MB of text and tens of "rows touching a
+  token." A bounded `LIKE '%t%'` scan over the pool (≤ `min(limit × 4, 400)`
+  rows per path) is a handful of milliseconds on SQLite.
 - FTS5 requires either a **shadow-table index** (extra writes on every upsert,
   trigger/DRT maintenance) or **runtime external-content queries** (planning
   complexity) — both add moving parts for no measured gain at this scale.
 - FTS5 default ranking (BM25) is great for document corpora; VoraFind's ranking
-  is metadata-field-aware (name > title > folder > artist), which a single-column
-  FTS row cannot express without custom scoring hacks.
+  is metadata-field-aware (name > title > OCR text > folder > artist), which a
+  single-column FTS row cannot express without custom scoring hacks.
 
 The projection is deliberately keyed to the same normalized form the query uses,
 so the seam can later swap to FTS5/trigram/Roaring-bitmap per-token indexes
@@ -185,10 +207,11 @@ so the seam can later swap to FTS5/trigram/Roaring-bitmap per-token indexes
 ## 6. Testing
 
 - **Unit**: normalizer, interpreter, ranker, service (validation + error
-  mapping).
+  mapping), metadata+OCR merge by stable key.
 - **DB**: migration v2→v3 backfill fidelity; `searchCandidates` SQL behavior
   (keyword OR, coverage ordering, filters, prefix escaping, pool bound,
-  rollback visibility, no-matches).
+  rollback visibility, no-matches); `searchOcrCandidates` (completed-only,
+  empty-token safety, current rows win over stale lines, pool bound).
 - **Integration**: 5000-row smoke benchmark through SQL + Dart ranking.
 - **Widget**: search screen states (idle, loading, no-results), dark theme,
   branding.
@@ -201,7 +224,8 @@ content.
 
 ## 8. Out of scope (deferred, do not implement)
 
-OCR, PDF/Word text extraction, audio transcripts, image similarity/embeddings,
-semantic/vector search, cross-device search, and AI chat. When OCR or semantics
-eventually arrive they extend the projection + ranking layers; deterministic
-metadata search stays available and unchanged (AGENTS.md §15).
+PDF/Word text extraction, audio transcripts, image similarity/embeddings,
+semantic/vector search, cross-device search, and AI chat. OCR body text (Prompt
+#8) is implemented and lives behind the same projection + ranking layers
+(weight 20); deterministic metadata search stays available and unchanged
+(AGENTS.md §15). When semantics eventually arrive they extend the same seam.

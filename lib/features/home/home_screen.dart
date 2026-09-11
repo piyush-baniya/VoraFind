@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_info.dart';
+import '../../core/ocr/ocr_coordinator.dart';
+import '../../core/ocr/ocr_models.dart' show OcrRunStatus;
+import '../../core/ocr/ocr_providers.dart';
 import '../../core/platform/content_access_models.dart' show ContentCategory;
 import '../../core/search/search_error.dart';
 import '../../core/search/search_field.dart';
@@ -29,8 +32,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Timer? _debounce;
   SearchQuery _query = const SearchQuery();
 
+  // Background OCR is driven by app lifecycle: it starts when the app comes
+  // back to the foreground and stops when it hides, so extraction never keeps
+  // chewing battery while the app is away (AGENTS.md §22).
+  late final AppLifecycleListener _lifecycleListener = AppLifecycleListener(
+    onResume: () => unawaited(ref.read(ocrCoordinatorProvider).start()),
+    onPause: () => ref.read(ocrCoordinatorProvider).cancel(),
+  );
+
+  @override
+  void initState() {
+    super.initState();
+  }
+
   @override
   void dispose() {
+    _lifecycleListener.dispose();
     _debounce?.cancel();
     _controller.dispose();
     super.dispose();
@@ -81,6 +98,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   onClear: _clear,
                 ),
               ),
+              _ocrStatusLine(),
               const SizedBox(height: 8),
               Expanded(child: _buildBody(theme)),
             ],
@@ -108,6 +126,88 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         }
         return _ResultsList(results: outcome.results);
       },
+    );
+  }
+
+  /// Slim extraction line under the search field. While a run is active it
+  /// shows live progress (so the phone does not "do nothing" while text is
+  /// being read); once a run finished it leaves a one-line confirmation in the
+  /// idle state instead of cluttering active searches.
+  Widget _ocrStatusLine() {
+    final progress = ref.watch(ocrRunProgressProvider);
+    return progress.maybeWhen(
+      data: (snapshot) {
+        final running = snapshot.status == OcrRunStatus.running;
+        final show = running || (!_query.hasContent && snapshot.processed > 0);
+        if (!show) return const SizedBox.shrink();
+        return _OcrStatusTile(snapshot: snapshot);
+      },
+      orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+/// One-line OCR extraction status with a spare progress bar while running.
+class _OcrStatusTile extends StatelessWidget {
+  const _OcrStatusTile({required this.snapshot});
+
+  final OcrRunProgress snapshot;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final running = snapshot.status == OcrRunStatus.running;
+    final label = running
+        ? 'Reading text from images · ${snapshot.processed}${snapshot.total > 0 ? '/${snapshot.total}' : ''}'
+        : 'Text extracted from ${snapshot.processed} images';
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              if (running) ...[
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                const SizedBox(width: 8),
+              ] else ...[
+                Icon(
+                  Icons.text_fields_rounded,
+                  size: 14,
+                  color: AppColors.textTertiary,
+                ),
+                const SizedBox(width: 6),
+              ],
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (running) ...[
+            const SizedBox(height: 6),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(2),
+              child: LinearProgressIndicator(
+                value: snapshot.fraction,
+                minHeight: 3,
+                backgroundColor: AppColors.divider,
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -476,6 +576,7 @@ class _SearchResultTile extends StatelessWidget {
     SearchField.artist || SearchField.albumArtist => 'artist',
     SearchField.album => 'album',
     SearchField.genre => 'genre',
+    SearchField.ocrText => 'OCR text',
   };
 
   static String _categoryLabel(ContentCategory category) => switch (category) {

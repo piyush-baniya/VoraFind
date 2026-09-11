@@ -122,6 +122,12 @@ Desktop.ini
 .flutter-plugins
 .flutter-plugins-dependencies
 
+# Generated test artifacts / local sqlite snapshots
+vorafind_upgrade_test*.sqlite
+
+# Untracked app assets not referenced by pubspec
+assets/
+
 # ============================================
 # OS / editor leftovers
 # ============================================

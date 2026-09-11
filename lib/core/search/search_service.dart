@@ -23,6 +23,12 @@ class SearchService {
   /// Runs [query] against the local index and returns at most
   /// `query.limit` (bounded by [SearchLimits]) ranked results.
   ///
+  /// When the query carries keyword tokens, candidate rows are retrieved both
+  /// from metadata (`searchable_text`) and from current OCR text
+  /// (`ocr_content`), merged and deduplicated by stable key, and ranked
+  /// together so body-text matches can surface an image the filename never
+  /// mentions.
+  ///
   /// Errors are surfaced as [SearchException]: invalid queries are rejected
   /// before any SQL runs, and database failures are wrapped from raw Drift
   /// errors. User query text never leaks into error messages.
@@ -38,12 +44,54 @@ class SearchService {
 
   /// Retrieves candidates through the repository, wrapping any database error
   /// in a user-safe [SearchException.database].
-  Future<List<MediaItem>> _retrieve(NormalizedSearchQuery prepared) async {
+  ///
+  /// Keyword queries consult both retrieval sources (metadata and OCR text,
+  /// concurrently); filter-only queries never bother with OCR text.
+  Future<List<SearchCandidate>> _retrieve(
+    NormalizedSearchQuery prepared,
+  ) async {
     try {
-      return await repository.searchCandidates(prepared);
+      if (!prepared.hasKeyword) {
+        final rows = await repository.searchCandidates(prepared);
+        return _metadataCandidates(rows);
+      }
+      final (metadata, ocr) = await (
+        repository.searchCandidates(prepared),
+        repository.searchOcrCandidates(prepared),
+      ).wait;
+      return _merge(metadata, ocr);
     } catch (_) {
       throw const SearchException.database();
     }
+  }
+
+  static List<SearchCandidate> _metadataCandidates(List<MediaItem> rows) =>
+      rows.map((row) => SearchCandidate(item: row)).toList(growable: false);
+
+  /// Merges the two bounded pools into one candidate list, deduplicated by
+  /// stable key. A row present in both pools keeps the metadata occurrence and
+  /// gains its OCR text, so body matches are scored even when the row was
+  /// retrieved through the filename.
+  static List<SearchCandidate> _merge(
+    List<MediaItem> metadata,
+    List<OcrSearchMatch> ocr,
+  ) {
+    final byKey = <String, SearchCandidate>{};
+    final order = <String>[];
+    for (final row in metadata) {
+      byKey[row.stableKey] = SearchCandidate(item: row);
+      order.add(row.stableKey);
+    }
+    for (final match in ocr) {
+      final key = match.item.stableKey;
+      final existing = byKey[key];
+      byKey[key] = SearchCandidate(
+        item: existing?.item ?? match.item,
+        ocrText: match.normalizedText,
+      );
+      if (existing == null) order.add(key);
+    }
+    return [for (final key in order) byKey[key]!];
   }
 
   /// Validates and normalizes [query]. Public and pure for unit testing.

@@ -1,10 +1,25 @@
 import '../database/app_database.dart';
 import '../platform/content_access_models.dart' show ContentCategory;
 import 'search_field.dart';
+import 'search_normalizer.dart';
 import 'search_query.dart';
 import 'search_result.dart';
 
-/// Result of scoring one row's metadata against query tokens.
+/// One candidate row entering the ranker: the persisted row plus any
+/// recognition text the retrieval stage found for it (nullable when the row
+/// was retrieved from metadata only, or has no OCR content yet).
+class SearchCandidate {
+  const SearchCandidate({required this.item, this.ocrText});
+
+  final MediaItem item;
+
+  /// Normalized OCR text (`ocr_content.normalized_text`), when this candidate
+  /// came from OCR retrieval and was still current.
+  final String? ocrText;
+}
+
+/// Result of scoring one candidate (row + optional OCR text) against query
+/// tokens.
 class ScoredMatch {
   const ScoredMatch({required this.score, required this.matches});
 
@@ -29,12 +44,17 @@ class SearchScorer {
   ///   remember; "citizenship_front.jpg" should beat a path-only mention.
   /// * `title` — MediaStore titles are usually equal to or richer than the
   ///   name, but not universally present, so slightly below displayName.
+  /// * `ocrText` (between title and folder) — body text is a *content* signal:
+  ///   stronger than a folder mention, but an exact filename or title still
+  ///   wins. An exact OCR phrase surfaces (weight dominates a filename
+  ///   substring), while a generic OCR substring never outranks a clear name.
   /// * `relativePath` / `bucketDisplayName` — useful context, deliberately
   ///   weak: a token in a path should never outrank a filename substring.
   /// * `artist`/`album`/`albumArtist`/`genre` — music metadata, lowest tier.
   static const Map<SearchField, int> fieldWeight = {
     SearchField.displayName: 50,
     SearchField.title: 44,
+    SearchField.ocrText: 20,
     SearchField.relativePath: 12,
     SearchField.bucketDisplayName: 12,
     SearchField.artist: 8,
@@ -66,6 +86,7 @@ class SearchScorer {
     String? album,
     String? albumArtist,
     String? genre,
+    String? ocrText,
     required List<String> tokens,
   }) {
     final fields = <SearchField, String?>{
@@ -77,6 +98,7 @@ class SearchScorer {
       SearchField.album: album,
       SearchField.albumArtist: albumArtist,
       SearchField.genre: genre,
+      SearchField.ocrText: ocrText,
     };
 
     var base = 0;
@@ -86,7 +108,7 @@ class SearchScorer {
     for (final entry in fields.entries) {
       final value = entry.value;
       if (value == null || value.isEmpty || tokens.isEmpty) continue;
-      final words = _words(value);
+      final words = SearchNormalizer.words(value);
       if (words.isEmpty) continue;
 
       for (final token in tokens) {
@@ -124,14 +146,6 @@ class SearchScorer {
     if (word.contains(token)) return MatchStrength.substring;
     return null;
   }
-
-  static List<String> _words(String value) {
-    final canonical = value
-        .toLowerCase()
-        .replaceAll(RegExp('[^a-z0-9]+'), ' ')
-        .trim();
-    return canonical.isEmpty ? const [] : canonical.split(' ');
-  }
 }
 
 /// Ranks raw candidate rows into settled [SearchResult]s.
@@ -145,11 +159,12 @@ class SearchRanker {
   /// [limit] results. Empty [NormalizedSearchQuery.tokens] produces filter-only
   /// results scored 0 (recency order).
   List<SearchResult> rank(
-    List<MediaItem> candidates,
+    List<SearchCandidate> candidates,
     NormalizedSearchQuery query,
   ) {
     final results = candidates
-        .map((row) {
+        .map((candidate) {
+          final row = candidate.item;
           final scored = scorer.score(
             displayName: row.displayName,
             title: row.title,
@@ -159,6 +174,7 @@ class SearchRanker {
             album: row.album,
             albumArtist: row.albumArtist,
             genre: row.genre,
+            ocrText: candidate.ocrText,
             tokens: query.tokens,
           );
           return SearchResult(

@@ -68,15 +68,26 @@ void main() {
       expect(result.score, 0);
       expect(result.matches, isEmpty);
     });
+
+    test('ocr text matches are scored through SearchField.ocrText', () {
+      final result = scorer.score(
+        displayName: 'photo.jpg',
+        ocrText: 'lorem ipsum 55x50 note',
+        tokens: ['x50'],
+      );
+      expect(result.score, greaterThan(0));
+      expect(result.matches.single.field, SearchField.ocrText);
+      expect(result.matches.single.strength, MatchStrength.substring);
+    });
   });
 
   group('SearchRanker.rank', () {
     test('sorts by score then recency then stable key deterministically', () {
       const ranker = SearchRanker();
       final rows = [
-        _row(key: 'a', name: 'photo.jpg', date: 100),
-        _row(key: 'b', name: 'citizenship_front.jpg', date: 200),
-        _row(key: 'c', name: 'citizenship_back.jpg', date: 200),
+        _candidate(key: 'a', name: 'photo.jpg', date: 100),
+        _candidate(key: 'b', name: 'citizenship_front.jpg', date: 200),
+        _candidate(key: 'c', name: 'citizenship_back.jpg', date: 200),
       ];
 
       final results = ranker.rank(rows, _queryFor(['citizenship']));
@@ -86,8 +97,8 @@ void main() {
     test('ties break by stable key ascending', () {
       const ranker = SearchRanker();
       final results = ranker.rank([
-        _row(key: 'z', name: 'same.jpg', date: 300),
-        _row(key: 'a', name: 'same.jpg', date: 300),
+        _candidate(key: 'z', name: 'same.jpg', date: 300),
+        _candidate(key: 'a', name: 'same.jpg', date: 300),
       ], _queryFor(['same']));
       expect(results.map((r) => r.stableKey), ['a', 'z']);
     });
@@ -96,7 +107,7 @@ void main() {
       const ranker = SearchRanker();
       final rows = List.generate(
         10,
-        (i) => _row(key: 'k$i', name: 'citizen_$i.jpg', date: 100 + i),
+        (i) => _candidate(key: 'k$i', name: 'citizen_$i.jpg', date: 100 + i),
       );
       final results = ranker.rank(rows, _queryFor(['citizen'], limit: 3));
       expect(results, hasLength(3));
@@ -105,19 +116,34 @@ void main() {
     test('returns the top-ranked subset of the bounded pool', () {
       const ranker = SearchRanker();
       final rows = [
-        _row(key: 'path', name: 'photo.jpg', path: 'Folder/citizenship/'),
-        _row(key: 'name', name: 'citizenship.jpg'),
+        _candidate(key: 'path', name: 'photo.jpg', path: 'Folder/citizenship/'),
+        _candidate(key: 'name', name: 'citizenship.jpg'),
       ];
       final results = ranker.rank(rows, _queryFor(['citizenship']));
       expect(results.first.stableKey, 'name');
       expect(results.first.score, greaterThan(results.last.score));
     });
 
+    test('OCR body text can surface a row its filename never mentions', () {
+      const ranker = SearchRanker();
+      final rows = [
+        _candidate(
+          key: 'ocr',
+          name: 'IMG_0001.jpg',
+          ocrText: 'hospital discharge vora 5550 summary',
+        ),
+        _candidate(key: 'other', name: 'vacation.jpg'),
+      ];
+      final results = ranker.rank(rows, _queryFor(['5550']));
+      expect(results.first.stableKey, 'ocr');
+      expect(results.first.matches.single.field, SearchField.ocrText);
+    });
+
     test('filter-only search keeps recency order with zero scores', () {
       const ranker = SearchRanker();
       final results = ranker.rank([
-        _row(key: 'old', name: 'a.jpg', date: 100),
-        _row(key: 'new', name: 'b.jpg', date: 900),
+        _candidate(key: 'old', name: 'a.jpg', date: 100),
+        _candidate(key: 'new', name: 'b.jpg', date: 900),
       ], _queryFor(const []));
       expect(results.first.stableKey, 'new');
       expect(results.every((r) => r.score == 0), isTrue);
@@ -140,7 +166,18 @@ NormalizedSearchQuery _queryFor(List<String> tokens, {int limit = 20}) =>
       limit: limit,
     );
 
-MediaItem _row({
+SearchCandidate _candidate({
+  required String key,
+  required String name,
+  int? date,
+  String? path,
+  String? ocrText,
+}) => SearchCandidate(
+  item: _mediaItem(key: key, name: name, date: date, path: path),
+  ocrText: ocrText,
+);
+
+MediaItem _mediaItem({
   required String key,
   required String name,
   int? date,

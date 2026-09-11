@@ -227,11 +227,11 @@ void main() {
       directory.deleteSync(recursive: true);
     });
 
-    test('migration creates the expected schema (v3)', () async {
+    test('migration creates the expected schema (v4)', () async {
       final userVersion = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(userVersion.data.values.single, 3);
+      expect(userVersion.data.values.single, 4);
       final mediaColumns = await db
           .customSelect('PRAGMA table_info(media_items)')
           .get()
@@ -285,10 +285,24 @@ void main() {
         'last_sync_at',
         'last_result',
       });
+      final ocrColumns = await db
+          .customSelect('PRAGMA table_info(ocr_content)')
+          .get()
+          .then((rows) => rows.map((r) => r.data['name']).toSet());
+      expect(ocrColumns, {
+        'media_stable_key',
+        'raw_text',
+        'normalized_text',
+        'status',
+        'source_revision',
+        'created_at',
+        'updated_at',
+        'error_code',
+      });
     });
 
     test(
-      'upgrading a v1 database preserves data and reaches schema v3',
+      'upgrading a v1 database preserves data and reaches schema v4',
       () async {
         final directory = Directory.current.createTempSync(
           'vorafind_upgrade_test',
@@ -297,10 +311,11 @@ void main() {
 
         try {
           // Craft a genuine v1 database in-place: create the physical schema,
-          // then remove the v2/v3 extras (`index_state`, `searchable_text`)
-          // and roll `user_version` back to 1 so reopening must execute the
-          // real v1→v3 upgrade path (recreate checkpoint table, add the
-          // retrieval column, backfill it from the surviving row).
+          // then remove the v2/v3/v4 extras (`index_state`,
+          // `searchable_text`, `ocr_content`) and roll `user_version` back to
+          // 1 so reopening must execute the real v1→v4 upgrade path (recreate
+          // checkpoint table, add the retrieval column, backfill it from the
+          // surviving row, create the OCR enrichment table).
           final v1 = AppDatabase(NativeDatabase(File(path)));
           await v1
               .into(v1.mediaItems)
@@ -324,6 +339,7 @@ void main() {
             'ALTER TABLE media_items DROP COLUMN searchable_text;',
           );
           await v1.customStatement('DROP TABLE IF EXISTS index_state;');
+          await v1.customStatement('DROP TABLE IF EXISTS ocr_content;');
           await v1.customStatement('PRAGMA user_version = 1;');
           await v1.close();
 
@@ -337,10 +353,12 @@ void main() {
           final versionAfter = await upgraded
               .customSelect('PRAGMA user_version')
               .getSingle();
-          expect(versionAfter.data.values.single, 3);
+          expect(versionAfter.data.values.single, 4);
           expect(await upgraded.select(upgraded.indexState).get(), isEmpty);
           // The v3 backfill made the legacy row searchable.
           expect(row.searchableText, 'kept jpg');
+          // The v4 OCR table was created empty.
+          expect(await upgraded.select(upgraded.ocrContent).get(), isEmpty);
           await upgraded.close();
         } finally {
           directory.deleteSync(recursive: true);
@@ -358,9 +376,10 @@ void main() {
         AppDatabase? upgraded;
 
         try {
-          // Create a v3 database, then make it a genuine v2 one: drop the
-          // searchable_text column and roll user_version back to 2 so reopening
-          // must execute the real v2→v3 upgrade path (add column + backfill).
+          // Create a v4 database, then make it a genuine v2 one: drop the
+          // searchable_text column and the OCR table, and roll user_version
+          // back to 2 so reopening must execute the real v2→v4 upgrade path
+          // (add column + backfill, create OCR table).
           final v2 = AppDatabase(NativeDatabase(File(path)));
           await v2
               .into(v2.mediaItems)
@@ -386,6 +405,7 @@ void main() {
           await v2.customStatement(
             'ALTER TABLE media_items DROP COLUMN searchable_text;',
           );
+          await v2.customStatement('DROP TABLE IF EXISTS ocr_content;');
           await v2.customStatement('PRAGMA user_version = 2;');
           await v2.close();
 
@@ -398,12 +418,13 @@ void main() {
             'artist summer 2024 mp3 summer 2024 example artist holiday mix',
           );
           expect(await upgraded.select(upgraded.indexState).get(), isEmpty);
+          expect(await upgraded.select(upgraded.ocrContent).get(), isEmpty);
           expect(
             (await upgraded.customSelect('PRAGMA user_version').getSingle())
                 .data
                 .values
                 .single,
-            3,
+            4,
           );
           await upgraded.close();
         } finally {
