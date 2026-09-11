@@ -3,8 +3,9 @@
 Status: **Partially implemented — the MediaStore discovery scanner baseline has
 landed and matches this document's §6 (Kotlin owns MediaStore), §8.1 (stable
 identity/re-link signature), §11 (bounded batched, ack-gated delivery), §13
-(channel contract), and §17 (screenshot heuristic). The Drift/SQLite index, search,
-OCR, and scheduled/resumable indexing remain unimplemented.**
+(channel contract), and §17 (screenshot heuristic). The Drift/SQLite index exists
+as `media_items` (see `docs/persistence.md`, Prompt #5); search, OCR, and
+scheduled/resumable indexing remain unimplemented.**
 
 > Concrete implementation details, the exact channel contract, projections,
 > selection gating, and the record schema live in **`docs/android-discovery.md`**.
@@ -474,7 +475,13 @@ state machine: `idle | running | paused | completed | failed`.
 Flutter owns persistence via Drift/SQLite. The schema boundary is defined here to keep
 discovery and future search cleanly separated.
 
-### 15.1 Tables (MVP)
+> **Implemented in Prompt #5 as `media_items`** with the operational details in
+> **`docs/persistence.md`** (columns, identity, transactional batch writes, and the
+> persist-then-ACK lifecycle). The table names in §15.1 are the **target end-state**;
+> Prompt #5 landed the pragmatic `media_items` table. Drift schema snapshots live in
+> `drift_schemas/`.
+
+### 15.1 Tables (MVP end-state)
 
 - **`volumes`** — one row per discoverable root:
   `id`, `type (mediastore|saf)`, `name`, `uri`, `generation`, `scopedGeneration`,
@@ -491,6 +498,10 @@ discovery and future search cleanly separated.
 - **`index_errors`** — failure isolation records: `stableKey`, `volumeId`, `code`,
   `message`, `retries`, `lastAttemptAt`, `resolved`.
 - **`saf_grants`** — persisted tree URIs + grant flags + user label (documents).
+
+As of Prompt #5 the **`media_items`** table covers rows equivalent to `indexed_items`
+plus discovery bookkeeping; `volumes/index_state/index_errors/saf_grants` are
+deferred.
 
 (OCR-final text lands later in `extracted_text`; FTS tables land with search — **not**
 in this phase, per scope control.)
