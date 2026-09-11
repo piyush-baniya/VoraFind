@@ -1,4 +1,4 @@
-import '../database/app_database.dart' show MediaItem;
+import '../database/app_database.dart' show Document, MediaItem;
 import '../database/document_repository.dart';
 import '../database/media_repository.dart';
 import '../platform/content_access_models.dart' show ContentCategory;
@@ -153,16 +153,65 @@ class SearchService {
         semanticFuture,
       ).wait;
 
-      return _merge(
+      final merged = _merge(
         metadata: media,
         ocr: ocr,
         docMetadata: docMeta,
         docContent: docContent,
         semantic: semantic,
       );
+      return await _resolveSemanticOnly(merged, repository, docRepo);
     } catch (_) {
       throw const SearchException.database();
     }
+  }
+
+  /// Semantic retrieval can surface a row no keyword pool found. Those
+  /// candidates enter [_merge] with only a [SearchCandidate.semanticKey]; this
+  /// resolves them to their persisted row so the ranker can produce a result.
+  /// Lookups are bounded by the semantic pool and returned rows need no further
+  /// enrichment — the semantic SQL already joined the media/document indexes.
+  static Future<List<SearchCandidate>> _resolveSemanticOnly(
+    List<SearchCandidate> candidates,
+    MediaRepository repository,
+    DocumentRepository? docRepo,
+  ) async {
+    final unresolved = <int>[];
+    for (var i = 0; i < candidates.length; i++) {
+      final candidate = candidates[i];
+      if (candidate.item == null &&
+          candidate.document == null &&
+          candidate.semanticKey != null) {
+        unresolved.add(i);
+      }
+    }
+    if (unresolved.isEmpty) return candidates;
+
+    final keys = [for (final i in unresolved) candidates[i].semanticKey!];
+    final items = await repository.fetchByStableKeys(keys);
+    final itemByKey = {for (final item in items) item.stableKey: item};
+    final docByKey = <String, Document>{};
+    final docRepoNonNull = docRepo;
+    if (docRepoNonNull != null) {
+      for (final key in keys) {
+        final doc = await docRepoNonNull.fetchByStableKey(key);
+        if (doc != null) docByKey[key] = doc;
+      }
+    }
+
+    for (final i in unresolved) {
+      final key = candidates[i].semanticKey!;
+      final item = itemByKey[key];
+      final doc = docByKey[key];
+      if (item == null && doc == null) continue;
+      candidates[i] = SearchCandidate(
+        item: item,
+        document: doc,
+        semanticKey: key,
+        semanticSimilarity: candidates[i].semanticSimilarity,
+      );
+    }
+    return candidates;
   }
 
   static bool _mayIncludeDocuments(NormalizedSearchQuery query) {

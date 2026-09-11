@@ -655,13 +655,23 @@ class _SearchResultTile extends StatelessWidget {
 
   /// Composes the explainable match line from ranker diagnostics:
   /// `Matched in name: aadhaar, card` (distinct tokens per field, joined).
+  /// When the *only* signal is conceptual similarity (no literal text matched)
+  /// the result shows `Semantic match` rather than the misleading "Matched in
+  /// semantic match" wording (Prompt #14 §22).
   static String _matchSummary(List<MatchInfo> matches) {
     if (matches.isEmpty) return '';
     final byField = <SearchField, List<String>>{};
     for (final match in matches) {
       byField.putIfAbsent(match.field, () => []).add(match.token);
     }
+    final semanticOnly = byField.keys.every((f) => f == SearchField.semantic);
+    if (semanticOnly) {
+      return 'Semantic match';
+    }
     final segments = byField.entries.map((entry) {
+      if (entry.key == SearchField.semantic) {
+        return 'conceptual similarity';
+      }
       final tokens = entry.value.toSet().where((t) => t.isNotEmpty).toList()
         ..sort();
       if (tokens.isEmpty) return _fieldLabel(entry.key);
@@ -680,7 +690,7 @@ class _SearchResultTile extends StatelessWidget {
     SearchField.genre => 'genre',
     SearchField.ocrText => 'OCR text',
     SearchField.documentText => 'document text',
-    SearchField.semantic => 'semantic match',
+    SearchField.semantic => 'conceptual similarity',
   };
 
   static String _categoryLabel(ContentCategory category) => switch (category) {

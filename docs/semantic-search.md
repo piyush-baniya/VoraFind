@@ -211,22 +211,48 @@ Search combines keyword and semantic candidates:
 ```text
 Keyword candidates (from metadata, OCR, document text)
       ↓
-Semantic candidates (from vector store)
+Semantic candidates (from vector store, bounded pool, model-current only)
       ↓
 Merge by stable_key (deduplicate, preserve keyword metadata)
       ↓
-SearchRanker: keyword_score + min(semantic_score_weighted, cap)
+Resolve semantic-only rows (a key keyword pools never found is loaded by
+stable key so the ranker can produce a real result — never a fragment)
+      ↓
+SearchRanker: keyword_score + semantic_score
+      ↓
+Deterministic sort: score desc → dateModified desc → stableKey asc
+      ↓
+Match explanations: keyword signals first, "Semantic match" last
 ```
+
+### Similarity threshold (measured)
+
+`minSimilarity = 0.35` was chosen with the real bundled model (Prompt #14), not
+intuition. On the development host the relevant query→document pairs landed in
+**[0.417, 0.717]** cosine and unrelated pairs at **≤ 0.27**, a clean gap that
+keeps retrieval recall-relevant without flooding results with noise
+(measurements saved at `%TEMP%\opencode\measures.txt`).
 
 ### Ranking rules
 
-1. Exact filename match (150+ points) always beats weak semantic similarity.
-2. Semantic similarity (weight 30, floored at 0.35 cosine) rescues cases
-   where keyword search finds nothing.
-3. A semantic-only candidate (no keyword match) gets `semanticScore` only.
-4. The worst keyword hit (substring OCR: 20 points) is still below the
-   strongest semantic contribution (30 points), so strong semantic matches
-   can surface content the keyword search barely touched.
+1. **Exact filename match (150+) always beats any semantic contribution.**
+   `semanticRankWeight = 50`, so even a perfect similarity (50 points) stays
+   below an exact filename (150), exact title (132), exact doc-text (66) or
+   exact OCR (60) hit — precision outranks fuzzy recall.
+2. **A *strong* semantic match rescues weak keyword misses.** The measured
+   minimum relevant similarity (0.42) contributes ~21 points, enough to beat a
+   path (12) or genre/artist (8) substring hit; a very strong match (> 0.8 →
+   40+) beats every substring/metadata-tier hit (≤ 24). This is what surfaces
+   `Vehicle Maintainace Guide.pdf` for `car repair information` (0.47, zero
+   keyword overlap) or `Chapter_4.pdf` for `neural networks`.
+3. **Semantic is additive and gated at the threshold.** Similarity maps
+   linearly via `similarity × semanticRankWeight`. The ranker independently
+   mirrors `minSimilarity` (defense-in-depth) so a sub-threshold value can
+   never fabricate a "semantic match" on a weak coincidence.
+4. **Explanation order is keyword-first.** Each result's match list leads with
+   the specific literal signals (`Matched in name: aadhaar, card`) and appends
+   `Semantic match` last; a result whose *only* signal is conceptual shows
+   `Semantic match` (never the phrase "semantic match").
 
 ## Limitations
 

@@ -29,12 +29,25 @@ abstract final class SemanticDefaults {
   static const double minSimilarity = 0.35;
 
   /// Rank points a similarity of 1.0 would contribute on top of the keyword
-  /// score. Deliberately *below* the weakest exact single-token filename hit
-  /// (displayName 50 × exact 3 = 150) and below title/OCR exact hits, so an
-  /// exact keyword match always beats a semantic-only match, while a strong
-  /// semantic match still outranks the weakest OCR substring hits (20). See
-  /// `docs/semantic-search.md` §Hybrid ranking.
-  static const int semanticRankWeight = 30;
+  /// score. A similarity `s` maps linearly to `s × semanticRankWeight`.
+  ///
+  /// Chosen from real-model measurements on the bundled model (Prompt #14)
+  /// rather than intuition: relevant pairs landed in [0.417, 0.717] and
+  /// unrelated pairs at ≤0.27. At 50 points per unit similarity that gives:
+  ///
+  /// * the minimum *relevant* match (0.42) → ~21 points — enough to beat a
+  ///   weak keyword hit on path (12) or genre/artist (8), so a genuine semantic
+  ///   match rescues rows keyword search misses;
+  /// * a very strong semantic match (>0.8) → 40+ points — still *below* an
+  ///   exact filename (150), exact title (132), exact OCR (60) or exact
+  ///   document-text (66) hit, so precise keyword signals keep priority
+  ///   (correctness > recall, AGENTS.md §6);
+  /// * a weak semantic match (~0.35, the retrieval threshold) → ~18 points —
+  ///   only outranks the weakest metadata substrings.
+  ///
+  /// Kept in one place; `SearchScorer.semanticRankWeight` aliases this
+  /// constant so the search and semantic layers cannot drift apart.
+  static const int semanticRankWeight = 50;
 
   /// Candidate pool multiplier for semantic retrieval — the SQL fetch is
   /// bounded and vectors are decoded only for this pool.
