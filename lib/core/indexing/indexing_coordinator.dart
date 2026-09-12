@@ -310,25 +310,30 @@ class IndexingCoordinator {
     // the run, and an unavailable provider simply skips the stage.
     if (runSemantic != null) {
       var semanticCancelled = false;
-      final semStream = runSemantic!();
-      final completer = Completer<SemanticRunStatus>();
-      final sub = semStream.listen((snapshot) {
-        _emit(
-          _rebuild(
-            semanticProcessed: snapshot.processed,
-            semanticTotal: snapshot.total,
-          ),
-        );
-        if (snapshot.status == SemanticRunStatus.cancelled ||
-            snapshot.status == SemanticRunStatus.completed ||
-            snapshot.status == SemanticRunStatus.failed ||
-            snapshot.status == SemanticRunStatus.unavailable) {
-          completer.complete(snapshot.status);
+      try {
+        await for (final snapshot in runSemantic!()) {
+          _emit(
+            _rebuild(
+              semanticProcessed: snapshot.processed,
+              semanticTotal: snapshot.total,
+            ),
+          );
+          if (snapshot.status == SemanticRunStatus.cancelled) {
+            semanticCancelled = true;
+            break;
+          }
+          if (snapshot.status == SemanticRunStatus.completed ||
+              snapshot.status == SemanticRunStatus.failed ||
+              snapshot.status == SemanticRunStatus.unavailable) {
+            break;
+          }
         }
-      });
-      final terminalStatus = await completer.future;
-      await sub.cancel();
-      semanticCancelled = terminalStatus == SemanticRunStatus.cancelled;
+      } catch (_) {
+        // Prompt #15.1: an errored stream must never crash the app or wedge
+        // the run into a permanent "indexing" state (the previous
+        // listen+Completer pattern never completed on a stream error).
+        // Semantic failure is intentionally non-fatal.
+      }
       if (semanticCancelled) return false;
       // semantic failed/unavailable is intentionally non-fatal
     }
@@ -338,25 +343,28 @@ class IndexingCoordinator {
     // skips the stage.
     if (runVisual != null) {
       var visualCancelled = false;
-      final visualStream = runVisual!();
-      final completer = Completer<VisualRunStatus>();
-      final sub = visualStream.listen((snapshot) {
-        _emit(
-          _rebuild(
-            visualProcessed: snapshot.processed,
-            visualTotal: snapshot.total,
-          ),
-        );
-        if (snapshot.status == VisualRunStatus.cancelled ||
-            snapshot.status == VisualRunStatus.completed ||
-            snapshot.status == VisualRunStatus.failed ||
-            snapshot.status == VisualRunStatus.unavailable) {
-          completer.complete(snapshot.status);
+      try {
+        await for (final snapshot in runVisual!()) {
+          _emit(
+            _rebuild(
+              visualProcessed: snapshot.processed,
+              visualTotal: snapshot.total,
+            ),
+          );
+          if (snapshot.status == VisualRunStatus.cancelled) {
+            visualCancelled = true;
+            break;
+          }
+          if (snapshot.status == VisualRunStatus.completed ||
+              snapshot.status == VisualRunStatus.failed ||
+              snapshot.status == VisualRunStatus.unavailable) {
+            break;
+          }
         }
-      });
-      final terminalStatus = await completer.future;
-      await sub.cancel();
-      visualCancelled = terminalStatus == VisualRunStatus.cancelled;
+      } catch (_) {
+        // Same containment as the semantic stage; visual failure stays
+        // non-fatal and the run can never be wedged by a broken stream.
+      }
       if (visualCancelled) return false;
       // visual failed/unavailable is intentionally non-fatal
     }

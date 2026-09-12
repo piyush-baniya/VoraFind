@@ -47,8 +47,20 @@ class OcrService(
             return
         }
         executor.execute {
+            // onResult is invoked exactly once regardless of what happens in
+            // runRecognize. In particular an Error (e.g. OutOfMemoryError while
+            // decoding) must not kill the process nor leave the Dart side
+            // waiting for a result that never arrives (Prompt #15.1).
+            val result = try {
+                runRecognize(contentUri, maxDimension)
+            } catch (_: Throwable) {
+                OcrRecognitionResult.failure(
+                    OcrError.OCR_FAILED,
+                    "The text recognizer failed.",
+                )
+            }
             try {
-                onResult(runRecognize(contentUri, maxDimension))
+                onResult(result)
             } finally {
                 inFlight.set(false)
             }

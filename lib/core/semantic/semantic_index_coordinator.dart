@@ -64,60 +64,73 @@ class SemanticIndexCoordinator {
     var succeeded = 0;
     var failed = 0;
 
-    yield SemanticRunProgress(
-      status: SemanticRunStatus.running,
-      processed: processed,
-      total: 0,
-      succeeded: succeeded,
-      failed: failed,
-    );
-
-    while (!_cancelled) {
-      final candidates = await _repository.findEmbeddingCandidates(
-        batchSize: _batchSize,
-        modelId: _provider.modelId,
-        dimensions: _provider.dimensions,
-        nowEpochSeconds: _now(),
-      );
-      if (candidates.isEmpty) break;
-
-      for (final candidate in candidates) {
-        if (_cancelled) break;
-        await _embedOne(candidate);
-        processed++;
-        // Success vs failure is tracked inside _embedOne via status writes;
-        // we approximate succeeded/failed from the persisted status.
-        final status = await _repository.getStatus(
-          candidate.stableKey,
-          candidate.contentType,
-        );
-        if (status == SemanticEmbeddingStatus.completed) {
-          succeeded++;
-        } else if (status == SemanticEmbeddingStatus.failed ||
-            status == SemanticEmbeddingStatus.unsupported) {
-          failed++;
-        }
-      }
-
+    try {
       yield SemanticRunProgress(
         status: SemanticRunStatus.running,
+        processed: processed,
+        total: 0,
+        succeeded: succeeded,
+        failed: failed,
+      );
+
+      while (!_cancelled) {
+        final candidates = await _repository.findEmbeddingCandidates(
+          batchSize: _batchSize,
+          modelId: _provider.modelId,
+          dimensions: _provider.dimensions,
+          nowEpochSeconds: _now(),
+        );
+        if (candidates.isEmpty) break;
+
+        for (final candidate in candidates) {
+          if (_cancelled) break;
+          await _embedOne(candidate);
+          processed++;
+          // Success vs failure is tracked inside _embedOne via status writes;
+          // we approximate succeeded/failed from the persisted status.
+          final status = await _repository.getStatus(
+            candidate.stableKey,
+            candidate.contentType,
+          );
+          if (status == SemanticEmbeddingStatus.completed) {
+            succeeded++;
+          } else if (status == SemanticEmbeddingStatus.failed ||
+              status == SemanticEmbeddingStatus.unsupported) {
+            failed++;
+          }
+        }
+
+        yield SemanticRunProgress(
+          status: SemanticRunStatus.running,
+          processed: processed,
+          total: processed,
+          succeeded: succeeded,
+          failed: failed,
+        );
+      }
+
+      final terminal = _cancelled
+          ? SemanticRunStatus.cancelled
+          : SemanticRunStatus.completed;
+      yield SemanticRunProgress(
+        status: terminal,
+        processed: processed,
+        total: processed,
+        succeeded: succeeded,
+        failed: failed,
+      );
+    } catch (_) {
+      // A repository-level error (not a per-row failure, which _embedOne
+      // persists durably) must terminate as a clean terminal status instead of
+      // escaping as an unhandled stream error (Prompt #15.1).
+      yield SemanticRunProgress(
+        status: SemanticRunStatus.failed,
         processed: processed,
         total: processed,
         succeeded: succeeded,
         failed: failed,
       );
     }
-
-    final terminal = _cancelled
-        ? SemanticRunStatus.cancelled
-        : SemanticRunStatus.completed;
-    yield SemanticRunProgress(
-      status: terminal,
-      processed: processed,
-      total: processed,
-      succeeded: succeeded,
-      failed: failed,
-    );
   }
 
   Future<void> _embedOne(SemanticCandidate candidate) async {

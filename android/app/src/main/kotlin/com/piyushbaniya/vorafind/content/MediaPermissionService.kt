@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.Lifecycle
 
 /**
  * Runtime permissions each media category requires per API level.
@@ -91,14 +92,28 @@ class MediaPermissionService(private val activity: ComponentActivity) {
             onResult(accessAfterRequest(category))
             return
         }
+        if (pendingCallback != null ||
+            !activity.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        ) {
+            // Either a request is already in flight (a second dialog cannot be
+            // shown), or the activity is not resumed yet (no dialog can be
+            // displayed). Resolve with the current state instead of overwriting
+            // an in-flight callback or leaving the Dart side waiting forever
+            // (Prompt #15.1).
+            onResult(accessAfterRequest(category))
+            return
+        }
         pendingCategory = category
         pendingCallback = onResult
         try {
             launcher.launch(permissions)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
+            // Resolve with the current (legal) state rather than failing the
+            // call: the caller re-reads capabilities afterwards.
+            val resolved = pendingCallback
             pendingCategory = null
             pendingCallback = null
-            throw e
+            resolved?.invoke(accessAfterRequest(category))
         }
     }
 

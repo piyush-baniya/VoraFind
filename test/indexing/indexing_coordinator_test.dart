@@ -11,6 +11,8 @@ import 'package:vorafind/core/indexing/indexing_coordinator.dart';
 import 'package:vorafind/core/ocr/ocr_coordinator.dart';
 import 'package:vorafind/core/ocr/ocr_models.dart' show OcrRunStatus;
 import 'package:vorafind/core/platform/content_access_models.dart';
+import 'package:vorafind/core/semantic/semantic_models.dart';
+import 'package:vorafind/core/visual/visual_models.dart';
 
 /// Configurable media-sync stage that records cancellation requests.
 class FakeMediaSync implements IndexingMediaSync {
@@ -69,6 +71,8 @@ IndexingCoordinator _coordinator({
   required OcrRunSummary ocrSummary,
   List<DocumentRunProgress> docSnapshots = const [],
   List<OcrRunProgress> ocrSnapshots = const [],
+  Stream<SemanticRunProgress> Function()? runSemantic,
+  Stream<VisualRunProgress> Function()? runVisual,
 }) {
   final docController = StreamController<DocumentRunProgress>.broadcast(
     sync: true,
@@ -94,6 +98,10 @@ IndexingCoordinator _coordinator({
     ocrProgress: ocrController.stream,
     mediaStats: () async =>
         const MediaIndexStats(total: 42, byCategory: {}, volumeCount: 1),
+    runSemantic: runSemantic,
+    cancelSemantic: runSemantic == null ? null : () {},
+    runVisual: runVisual,
+    cancelVisual: runVisual == null ? null : () {},
   );
 }
 
@@ -355,5 +363,117 @@ void main() {
       expect(sync.cancelCount, 1);
       expect(ocrCancelCount, 1);
     });
+
+    test('semantic stream error never fails the run or wedges it', () async {
+      final coordinator = _coordinator(
+        sync: FakeMediaSync(result: _syncResult(SyncSessionOutcome.completed)),
+        documentSummary: const DocumentRunSummary(
+          status: DocumentRunStatus.completed,
+        ),
+        ocrSummary: const OcrRunSummary(status: OcrRunStatus.completed),
+        runSemantic: () async* {
+          yield const SemanticRunProgress(
+            status: SemanticRunStatus.running,
+            processed: 0,
+            total: 0,
+            succeeded: 0,
+            failed: 0,
+          );
+          throw StateError('embedding repository exploded');
+        },
+      );
+
+      final outcome = await coordinator.start();
+
+      expect(outcome.phase, IndexingPhase.completed);
+      expect(coordinator.isRunning, isFalse);
+    });
+
+    test('visual stream error never fails the run or wedges it', () async {
+      final coordinator = _coordinator(
+        sync: FakeMediaSync(result: _syncResult(SyncSessionOutcome.completed)),
+        documentSummary: const DocumentRunSummary(
+          status: DocumentRunStatus.completed,
+        ),
+        ocrSummary: const OcrRunSummary(status: OcrRunStatus.completed),
+        runVisual: () async* {
+          yield const VisualRunProgress(
+            status: VisualRunStatus.running,
+            processed: 0,
+            total: 0,
+            succeeded: 0,
+            failed: 0,
+          );
+          throw StateError('frame classifier exploded');
+        },
+      );
+
+      final outcome = await coordinator.start();
+
+      expect(outcome.phase, IndexingPhase.completed);
+      expect(coordinator.isRunning, isFalse);
+    });
+
+    test(
+      'enrichment stream ending without a terminal status completes the run',
+      () async {
+        // Regression for Prompt #15.1: the old listen+Completer drain hung
+        // forever when a stream ended without a terminal event, leaving the
+        // coordinator permanently stuck in "indexing". The await-for drain
+        // reads until the generator finishes regardless of terminal events.
+        final coordinator = _coordinator(
+          sync: FakeMediaSync(
+            result: _syncResult(SyncSessionOutcome.completed),
+          ),
+          documentSummary: const DocumentRunSummary(
+            status: DocumentRunStatus.completed,
+          ),
+          ocrSummary: const OcrRunSummary(status: OcrRunStatus.completed),
+          runSemantic: () async* {
+            yield const SemanticRunProgress(
+              status: SemanticRunStatus.running,
+              processed: 1,
+              total: 1,
+              succeeded: 1,
+              failed: 0,
+            );
+          },
+        );
+
+        final outcome = await coordinator.start();
+
+        expect(outcome.phase, IndexingPhase.completed);
+        expect(coordinator.isRunning, isFalse);
+      },
+    );
+
+    test(
+      'semantic cancellation still concludes the run as cancelled',
+      () async {
+        final coordinator = _coordinator(
+          sync: FakeMediaSync(
+            result: _syncResult(SyncSessionOutcome.completed),
+          ),
+          documentSummary: const DocumentRunSummary(
+            status: DocumentRunStatus.completed,
+          ),
+          ocrSummary: const OcrRunSummary(status: OcrRunStatus.completed),
+          runSemantic: () async* {
+            yield const SemanticRunProgress(
+              status: SemanticRunStatus.cancelled,
+              processed: 0,
+              total: 0,
+              succeeded: 0,
+              failed: 0,
+            );
+          },
+        );
+
+        final outcome = await coordinator.start();
+
+        expect(outcome.phase, IndexingPhase.cancelled);
+        expect(coordinator.isRunning, isFalse);
+      },
+    );
   });
 }

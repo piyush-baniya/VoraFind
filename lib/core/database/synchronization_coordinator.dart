@@ -142,6 +142,7 @@ class SynchronizationCoordinator {
     this.nowSeconds,
     this.reconciliationPageSize = 500,
     this.deletionChunkSize = 500,
+    this.mediaRequestTimeout = const Duration(minutes: 1),
   });
 
   static const fallbackVolume = 'external_primary';
@@ -155,6 +156,12 @@ class SynchronizationCoordinator {
 
   final int reconciliationPageSize;
   final int deletionChunkSize;
+
+  /// Upper bound for waiting on one runtime permission dialog (Prompt #15.1).
+  /// A request that never resolves — e.g. the native launcher silently no-ops
+  /// when the activity is not resumed — must not wedge the pipeline: the run
+  /// re-reads capabilities and continues with whatever is accessible.
+  final Duration mediaRequestTimeout;
 
   late final DeletionReconciler _reconciler;
   _UnitPlan? _active;
@@ -195,7 +202,12 @@ class SynchronizationCoordinator {
       );
     }
 
-    final capabilities = await contentAccess.getCapabilities();
+    // Prompt #15.1: runtime permissions are requested *here*, inside the
+    // pipeline, before any planning — production code previously only queried
+    // capabilities and never requested access, so a fresh install could never
+    // index anything. Requests run sequentially (Android shows one dialog per
+    // category group); planning below uses the post-grant capability snapshot.
+    final capabilities = await _acquireRequestedAccess(requested);
     final volumes = capabilities.externalVolumes.isEmpty
         ? const [fallbackVolume]
         : capabilities.externalVolumes.toList(growable: false);
@@ -343,6 +355,47 @@ class SynchronizationCoordinator {
 
     _sessionActive = false;
     return _finish(_outcomeFor(sessionCancelled, sessionFailed));
+  }
+
+  /// Requests runtime media access for every requested category that is
+  /// currently unavailable-but-askable, then returns a fresh capability
+  /// snapshot so planning reflects the user's answer (Prompt #15.1).
+  ///
+  /// Documents are excluded: they are granted through the SAF folder picker,
+  /// not a runtime permission. Categories already at full/partial access or
+  /// permanently denied are skipped, so an already-granted install never sees
+  /// a dialog again and a permanently denied user is not repeatedly asked.
+  ///
+  /// A failed or timing-out request is intentionally not fatal: the request is
+  /// abandoned, the capabilities re-read, and the run proceeds with whatever
+  /// access exists (outcome `noAccess` when nothing was granted — a
+  /// recoverable state the UI already explains).
+  Future<ContentCapabilities> _acquireRequestedAccess(
+    List<ContentCategory> requested,
+  ) async {
+    var capabilities = await contentAccess.getCapabilities();
+    var asked = false;
+    for (final category in requested) {
+      if (category == ContentCategory.documents) continue;
+      final state = capabilities.accessFor(category).state;
+      if (state != ContentAccessState.noAccess &&
+          state != ContentAccessState.denied) {
+        continue;
+      }
+      asked = true;
+      try {
+        await contentAccess
+            .requestMediaAccess(category)
+            .timeout(mediaRequestTimeout);
+      } catch (_) {
+        // The request could not be shown or answered. Fall through: the fresh
+        // snapshot below reflects the actual grant state either way.
+      }
+    }
+    if (asked) {
+      capabilities = await contentAccess.getCapabilities();
+    }
+    return capabilities;
   }
 
   DiscoveryStreamConsumer _buildConsumer(Map<_UnitKey, _UnitPlan> byKey) {

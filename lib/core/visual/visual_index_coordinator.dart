@@ -65,54 +65,67 @@ class VisualIndexCoordinator {
     var succeeded = 0;
     var failed = 0;
 
-    yield VisualRunProgress(
-      status: VisualRunStatus.running,
-      processed: processed,
-      total: 0,
-      succeeded: succeeded,
-      failed: failed,
-    );
-
-    while (!_cancelled) {
-      final candidates = await _repository.findVisualCandidates(
-        batchSize: _batchSize,
-        modelId: _classifier.modelId,
-        nowEpochSeconds: _now(),
-      );
-      if (candidates.isEmpty) break;
-
-      for (final candidate in candidates) {
-        if (_cancelled) break;
-        await _analyzeOne(candidate);
-        processed++;
-        final status = await _repository.getStatus(candidate.stableKey);
-        if (status == VisualVideoStatus.completed) {
-          succeeded++;
-        } else if (status == VisualVideoStatus.failed ||
-            status == VisualVideoStatus.unsupported) {
-          failed++;
-        }
-      }
-
+    try {
       yield VisualRunProgress(
         status: VisualRunStatus.running,
+        processed: processed,
+        total: 0,
+        succeeded: succeeded,
+        failed: failed,
+      );
+
+      while (!_cancelled) {
+        final candidates = await _repository.findVisualCandidates(
+          batchSize: _batchSize,
+          modelId: _classifier.modelId,
+          nowEpochSeconds: _now(),
+        );
+        if (candidates.isEmpty) break;
+
+        for (final candidate in candidates) {
+          if (_cancelled) break;
+          await _analyzeOne(candidate);
+          processed++;
+          final status = await _repository.getStatus(candidate.stableKey);
+          if (status == VisualVideoStatus.completed) {
+            succeeded++;
+          } else if (status == VisualVideoStatus.failed ||
+              status == VisualVideoStatus.unsupported) {
+            failed++;
+          }
+        }
+
+        yield VisualRunProgress(
+          status: VisualRunStatus.running,
+          processed: processed,
+          total: processed,
+          succeeded: succeeded,
+          failed: failed,
+        );
+      }
+
+      final terminal = _cancelled
+          ? VisualRunStatus.cancelled
+          : VisualRunStatus.completed;
+      yield VisualRunProgress(
+        status: terminal,
+        processed: processed,
+        total: processed,
+        succeeded: succeeded,
+        failed: failed,
+      );
+    } catch (_) {
+      // A repository-level error (not a per-video failure, which _analyzeOne
+      // persists durably) must terminate as a clean terminal status instead of
+      // escaping as an unhandled stream error (Prompt #15.1).
+      yield VisualRunProgress(
+        status: VisualRunStatus.failed,
         processed: processed,
         total: processed,
         succeeded: succeeded,
         failed: failed,
       );
     }
-
-    final terminal = _cancelled
-        ? VisualRunStatus.cancelled
-        : VisualRunStatus.completed;
-    yield VisualRunProgress(
-      status: terminal,
-      processed: processed,
-      total: processed,
-      succeeded: succeeded,
-      failed: failed,
-    );
   }
 
   Future<void> _analyzeOne(VisualCandidate candidate) async {

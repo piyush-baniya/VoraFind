@@ -187,10 +187,27 @@ class FakeDiscovery implements MediaDiscovery {
 }
 
 class FakeContentAccess implements ContentAccess {
-  FakeContentAccess({required this.volumes, required this.states});
+  FakeContentAccess({
+    required this.volumes,
+    required Map<ContentCategory, ContentAccessState> states,
+    Map<ContentCategory, ContentAccessState>? requestResults,
+    this.requestError,
+    this.requestDelay = Duration.zero,
+  }) : states = Map.of(states),
+       requestResults = requestResults ?? const {};
 
   final List<String> volumes;
+
+  /// Current access state per category; [requestMediaAccess] keeps it in sync.
   final Map<ContentCategory, ContentAccessState> states;
+
+  /// Grant state applied to [states] when a category is requested.
+  final Map<ContentCategory, ContentAccessState> requestResults;
+  final Object? requestError;
+  final Duration requestDelay;
+
+  /// Categories for which [requestMediaAccess] was invoked, in order.
+  final List<ContentCategory> requested = [];
 
   @override
   Future<ContentCapabilities> getCapabilities() async => ContentCapabilities(
@@ -207,12 +224,31 @@ class FakeContentAccess implements ContentAccess {
   );
 
   @override
-  Future<ContentCategoryAccess> getPermissionState(ContentCategory category) =>
-      throw UnimplementedError();
+  Future<ContentCategoryAccess> getPermissionState(
+    ContentCategory category,
+  ) async => ContentCategoryAccess(
+    category: category,
+    state: states[category] ?? ContentAccessState.noAccess,
+  );
 
   @override
-  Future<ContentCategoryAccess> requestMediaAccess(ContentCategory category) =>
-      throw UnimplementedError();
+  Future<ContentCategoryAccess> requestMediaAccess(
+    ContentCategory category,
+  ) async {
+    requested.add(category);
+    final error = requestError;
+    if (error != null) throw error;
+    if (requestDelay > Duration.zero) {
+      await Future<void>.delayed(requestDelay);
+    }
+    if (requestResults.containsKey(category)) {
+      states[category] = requestResults[category]!;
+    }
+    return ContentCategoryAccess(
+      category: category,
+      state: states[category] ?? ContentAccessState.noAccess,
+    );
+  }
 
   @override
   Future<DocumentGrantResult> requestDocumentTree() =>
@@ -707,5 +743,173 @@ void main() {
       expect(v1!.lastGeneration, 1);
       expect(v2!.lastGeneration, 2);
     });
+
+    test('requests a missing media permission before planning', () async {
+      access = FakeContentAccess(
+        volumes: const ['external_primary'],
+        states: const {ContentCategory.images: ContentAccessState.noAccess},
+        requestResults: const {
+          ContentCategory.images: ContentAccessState.fullAccess,
+        },
+      );
+      discovery.generation(ContentCategory.images, 'external_primary', 100);
+      discovery.play(
+        buildScript([
+          ScriptUnit(
+            category: ContentCategory.images,
+            volume: 'external_primary',
+            batches: [
+              ([buildRecord(id: 1)], false, 100),
+            ],
+          ),
+        ]),
+      );
+
+      final result = await run(const [ContentCategory.images]);
+
+      expect(access.requested, [ContentCategory.images]);
+      expect(result.outcome, SyncSessionOutcome.completed);
+      expect(result.units.single.kind, SyncUnitKind.firstIndex);
+      expect(result.units.single.recordsInserted, 1);
+    });
+
+    test('an already-granted category is never asked again', () async {
+      access = FakeContentAccess(
+        volumes: const ['external_primary'],
+        states: const {ContentCategory.images: ContentAccessState.fullAccess},
+      );
+      discovery.play(
+        buildScript([
+          ScriptUnit(
+            category: ContentCategory.images,
+            volume: 'external_primary',
+            batches: [
+              ([buildRecord(id: 1)], false, 100),
+            ],
+          ),
+        ]),
+      );
+
+      final result = await run(const [ContentCategory.images]);
+
+      expect(access.requested, isEmpty);
+      expect(result.outcome, SyncSessionOutcome.completed);
+    });
+
+    test('a denied request concludes noAccess and stays recoverable', () async {
+      access = FakeContentAccess(
+        volumes: const ['external_primary'],
+        states: const {ContentCategory.images: ContentAccessState.noAccess},
+      );
+      discovery.generation(ContentCategory.images, 'external_primary', 100);
+
+      final result = await run(const [ContentCategory.images]);
+
+      expect(access.requested, [ContentCategory.images]);
+      expect(result.outcome, SyncSessionOutcome.noAccess);
+      expect(result.units.single.kind, SyncUnitKind.unavailable);
+      expect(discovery.startedCategories, isEmpty);
+
+      // The app must stay usable after a denial: a later run can ask again.
+      final retry = await run(const [ContentCategory.images]);
+      expect(retry.outcome, SyncSessionOutcome.noAccess);
+      expect(access.requested, [
+        ContentCategory.images,
+        ContentCategory.images,
+      ]);
+    });
+
+    test('a partial grant scans only the permitted category', () async {
+      access = FakeContentAccess(
+        volumes: const ['external_primary'],
+        states: const {
+          ContentCategory.images: ContentAccessState.noAccess,
+          ContentCategory.videos: ContentAccessState.noAccess,
+        },
+        requestResults: const {
+          ContentCategory.images: ContentAccessState.partialAccess,
+        },
+      );
+      discovery.generation(ContentCategory.images, 'external_primary', 100);
+      discovery.play(
+        buildScript([
+          ScriptUnit(
+            category: ContentCategory.images,
+            volume: 'external_primary',
+            scope: DiscoveryAccessScope.partial,
+            batches: [
+              ([buildRecord(id: 5)], false, 100),
+            ],
+          ),
+        ]),
+      );
+
+      final result = await run(const [
+        ContentCategory.images,
+        ContentCategory.videos,
+      ]);
+
+      expect(access.requested, [
+        ContentCategory.images,
+        ContentCategory.videos,
+      ]);
+      expect(result.outcome, SyncSessionOutcome.completed);
+      expect(discovery.startedCategories, [
+        [ContentCategory.images],
+      ]);
+      expect(
+        result.units
+            .where((unit) => unit.category == ContentCategory.videos)
+            .single
+            .kind,
+        SyncUnitKind.unavailable,
+      );
+    });
+
+    test('a failed permission request cannot block the run', () async {
+      access = FakeContentAccess(
+        volumes: const ['external_primary'],
+        states: const {ContentCategory.images: ContentAccessState.noAccess},
+        requestError: StateError('platform unavailable'),
+      );
+
+      final result = await run(const [ContentCategory.images]);
+
+      expect(access.requested, [ContentCategory.images]);
+      expect(result.outcome, SyncSessionOutcome.noAccess);
+      expect(discovery.startedCategories, isEmpty);
+    });
+
+    test(
+      'a permission request that never resolves times out instead of wedging',
+      () async {
+        db = inMemoryDb();
+        repository = DriftMediaRepository(db);
+        discovery = FakeDiscovery();
+        access = FakeContentAccess(
+          volumes: const ['external_primary'],
+          states: const {ContentCategory.images: ContentAccessState.noAccess},
+          requestResults: const {
+            ContentCategory.images: ContentAccessState.fullAccess,
+          },
+          requestDelay: const Duration(milliseconds: 200),
+        );
+        final coordinatorUnderTest = SynchronizationCoordinator(
+          repository: repository,
+          discovery: discovery,
+          contentAccess: access,
+          nowSeconds: () => 12345,
+          mediaRequestTimeout: const Duration(milliseconds: 50),
+        );
+
+        final result = await coordinatorUnderTest.run(const [
+          ContentCategory.images,
+        ]);
+
+        expect(result.outcome, SyncSessionOutcome.noAccess);
+        expect(access.requested, [ContentCategory.images]);
+        expect(discovery.startedCategories, isEmpty);
+      },
+    );
   });
 }

@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.media.MediaMetadataRetriever
 import android.net.Uri
+import android.os.Build
 import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
@@ -28,6 +29,10 @@ class VideoFrameBridge(private val context: Context) : MethodChannel.MethodCallH
             catch (e: VideoSampleException) { result.error(e.code, e.message, null) }
             catch (_: SecurityException) { result.error("denied", "Denied.", null) }
             catch (e: Exception) { result.error("corrupt", e.message, null) }
+            // An Error (e.g. OutOfMemoryError on a high-resolution source) must
+            // never kill the process or leave the Dart future hanging: route it
+            // back as a controlled failure (Prompt #15.1).
+            catch (e: Throwable) { result.error("failed", e.message ?: "Frame sampling failed.", null) }
         }, "vorafind-video").apply { isDaemon = true }.start()
     }
     private fun sample(uri: String, maxF: Int, dim: Int): Map<String, Any?> {
@@ -50,8 +55,16 @@ class VideoFrameBridge(private val context: Context) : MethodChannel.MethodCallH
             val frames = ArrayList<Map<String, Any?>>(count)
             for (slot in 0 until count) {
                 val ts = if (count == 1) start else start + (end - start) / max(count - 1, 1) * slot
-                val bmp = try { ret.getFrameAtTime(ts, MediaMetadataRetriever.OPTION_CLOSEST_SYNC) }
-                    catch (_: Exception) { null } ?: continue
+                // getScaledFrameAtTime (API 27+) decodes a downscaled frame
+                // directly, avoiding a full-resolution bitmap for 4K sources
+                // (the number one OOM crash during indexing, Prompt #15.1).
+                val bmp = try {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+                        ret.getScaledFrameAtTime(ts, MediaMetadataRetriever.OPTION_CLOSEST_SYNC, dim, dim)
+                    } else {
+                        ret.getFrameAtTime(ts, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                    }
+                } catch (_: Exception) { null } ?: continue
                 try {
                     val small = scaleCrop(bmp, dim)
                     frames.add(mapOf("tsMs" to ts / 1000, "rgb" to rgb(small)))

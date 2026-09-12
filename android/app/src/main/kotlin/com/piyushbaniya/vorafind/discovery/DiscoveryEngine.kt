@@ -148,6 +148,13 @@ class DiscoveryEngine(
         } catch (e: Exception) {
             failed = e.message ?: e.javaClass.simpleName
             errorCode = "scannerFailed"
+        } catch (e: Throwable) {
+            // An Error (typically OutOfMemoryError while assembling a batch)
+            // must never kill the process and must not leave the engine stuck
+            // in RUNNING — the state set below still reaches a terminal value
+            // and Dart receives a discoveryError (Prompt #15.1).
+            failed = e.message ?: e.javaClass.simpleName
+            errorCode = "scannerFailed"
         } finally {
             currentCategory = null
             currentVolume = null
