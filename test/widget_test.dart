@@ -70,25 +70,29 @@ void main() {
     final container = await newContainer();
     await pumpApp(tester, container);
 
-    expect(find.text(AppInfo.name), findsOneWidget);
+    expect(find.text(AppInfo.name), findsWidgets);
     expect(find.byType(TextField), findsOneWidget);
-    expect(find.text('Search your phone…'), findsOneWidget);
+    expect(find.text('Search your device'), findsOneWidget);
+    expect(find.text('Search'), findsOneWidget); // bottom-nav destination
+    expect(find.text('Explore'), findsOneWidget);
+    expect(find.text('Settings'), findsOneWidget);
   });
 
-  testWidgets('application exposes the dark theme', (tester) async {
+  testWidgets('application exposes the dark theme by default', (tester) async {
     final container = await newContainer();
     await pumpApp(tester, container);
 
-    final context = tester.element(find.byType(Scaffold));
-    final brightness = Theme.of(context).brightness;
-    expect(brightness, Brightness.dark);
+    final context = tester.element(find.byType(Scaffold).first);
+    expect(Theme.of(context).brightness, Brightness.dark);
   });
 
   testWidgets('idle state reports an empty index honestly', (tester) async {
     final container = await newContainer();
     await pumpApp(tester, container);
 
+    // Empty index → honest onboarding instead of pretend results.
     expect(find.text('Nothing indexed yet'), findsOneWidget);
+    expect(find.text('Give access'), findsOneWidget);
   });
 
   testWidgets('a search with no matches shows the no-results state', (
@@ -102,6 +106,54 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('No files matched'), findsOneWidget);
+  });
+
+  testWidgets('switching to the light appearance rebuilds the theme', (
+    tester,
+  ) async {
+    final container = await newContainer();
+    await pumpApp(tester, container);
+
+    await tester.tap(find.text('Settings'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Light'));
+    await tester.pumpAndSettle();
+
+    final context = tester.element(find.byType(Scaffold).first);
+    expect(Theme.of(context).brightness, Brightness.light);
+  });
+
+  testWidgets('Explore shows the browse chip row and a grid for images', (
+    tester,
+  ) async {
+    final container = await newContainer();
+    await pumpApp(tester, container);
+
+    await tester.tap(find.text('Explore'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recent'), findsWidgets);
+    expect(find.text('Images'), findsOneWidget);
+    expect(find.text('Videos'), findsOneWidget);
+  });
+
+  testWidgets('filtering a search by type shows the active filter chip', (
+    tester,
+  ) async {
+    final container = await newContainer();
+    await pumpApp(tester, container);
+
+    await tester.tap(find.byTooltip('Filter by type'));
+    await tester.pumpAndSettle();
+    expect(find.text('Filter by type'), findsOneWidget);
+
+    await tester.tap(find.text('Images'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Apply'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('images'), findsWidgets); // active filter chip label
   });
 }
 

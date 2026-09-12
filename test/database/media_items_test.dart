@@ -227,11 +227,11 @@ void main() {
       directory.deleteSync(recursive: true);
     });
 
-    test('migration creates the expected schema (v8)', () async {
+    test('migration creates the expected schema (v9)', () async {
       final userVersion = await db
           .customSelect('PRAGMA user_version')
           .getSingle();
-      expect(userVersion.data.values.single, 8);
+      expect(userVersion.data.values.single, 9);
       final mediaColumns = await db
           .customSelect('PRAGMA table_info(media_items)')
           .get()
@@ -371,10 +371,15 @@ void main() {
         'concept',
         'confidence',
       });
+      final settingsColumns = await db
+          .customSelect('PRAGMA table_info(app_settings)')
+          .get()
+          .then((rows) => rows.map((r) => r.data['name']).toSet());
+      expect(settingsColumns, {'key', 'theme_mode'});
     });
 
     test(
-      'upgrading a v1 database preserves data and reaches schema v8',
+      'upgrading a v1 database preserves data and reaches schema v9',
       () async {
         final directory = Directory.current.createTempSync(
           'vorafind_upgrade_test',
@@ -383,12 +388,12 @@ void main() {
 
         try {
           // Craft a genuine v1 database in-place: create the physical schema,
-          // then remove the v2/v3/v4/v5/v6/v7/v8 extras (`index_state`,
+          // then remove the v2/v3/v4/v5/v6/v7/v8/v9 extras (`index_state`,
           // `searchable_text`, `ocr_content`, `saf_grants`, `documents`,
           // `document_content`, `semantic_embeddings`, `video_visual_status`,
-          // `video_visual_frames`, `image_visual_embeddings`) and roll
-          // `user_version` back to 1 so reopening must execute the real
-          // v1→v8 upgrade path.
+          // `video_visual_frames`, `image_visual_embeddings`,
+          // `app_settings`) and roll `user_version` back to 1 so reopening
+          // must execute the real v1→v9 upgrade path.
           final v1 = AppDatabase(NativeDatabase(File(path)));
           await v1
               .into(v1.mediaItems)
@@ -422,6 +427,7 @@ void main() {
           await v1.customStatement(
             'DROP TABLE IF EXISTS image_visual_embeddings;',
           );
+          await v1.customStatement('DROP TABLE IF EXISTS app_settings;');
           await v1.customStatement('PRAGMA user_version = 1;');
           await v1.close();
 
@@ -435,12 +441,12 @@ void main() {
           final versionAfter = await upgraded
               .customSelect('PRAGMA user_version')
               .getSingle();
-          expect(versionAfter.data.values.single, 8);
+          expect(versionAfter.data.values.single, 9);
           expect(await upgraded.select(upgraded.indexState).get(), isEmpty);
           // The v3 backfill made the legacy row searchable.
           expect(row.searchableText, 'kept jpg');
-          // The v4 OCR, v5 document, v6 semantic, v7 visual, and v8 image
-          // similarity tables were created empty.
+          // The v4 OCR, v5 document, v6 semantic, v7 visual, v8 image
+          // similarity, and v9 settings tables were created empty.
           expect(await upgraded.select(upgraded.ocrContent).get(), isEmpty);
           expect(await upgraded.select(upgraded.safGrants).get(), isEmpty);
           expect(await upgraded.select(upgraded.documents).get(), isEmpty);
@@ -464,6 +470,7 @@ void main() {
             await upgraded.select(upgraded.imageVisualEmbeddings).get(),
             isEmpty,
           );
+          expect(await upgraded.select(upgraded.appSettings).get(), isEmpty);
           await upgraded.close();
         } finally {
           directory.deleteSync(recursive: true);
@@ -481,11 +488,11 @@ void main() {
         AppDatabase? upgraded;
 
         try {
-          // Create a v8 database, then make it a genuine v2 one: drop the
+          // Create a v9 database, then make it a genuine v2 one: drop the
           // searchable_text column, OCR table, document tables,
-          // semantic_embeddings, visual tables, and image similarity table,
-          // and roll user_version back to 2 so reopening must execute the
-          // real v2→v8 upgrade.
+          // semantic_embeddings, visual tables, image similarity table, and
+          // app_settings, and roll user_version back to 2 so reopening must
+          // execute the real v2→v9 upgrade.
           final v2 = AppDatabase(NativeDatabase(File(path)));
           await v2
               .into(v2.mediaItems)
@@ -521,6 +528,7 @@ void main() {
           await v2.customStatement(
             'DROP TABLE IF EXISTS image_visual_embeddings;',
           );
+          await v2.customStatement('DROP TABLE IF EXISTS app_settings;');
           await v2.customStatement('PRAGMA user_version = 2;');
           await v2.close();
 
@@ -556,12 +564,13 @@ void main() {
             await upgraded.select(upgraded.imageVisualEmbeddings).get(),
             isEmpty,
           );
+          expect(await upgraded.select(upgraded.appSettings).get(), isEmpty);
           expect(
             (await upgraded.customSelect('PRAGMA user_version').getSingle())
                 .data
                 .values
                 .single,
-            8,
+            9,
           );
           await upgraded.close();
         } finally {

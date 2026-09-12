@@ -9,4 +9,10 @@ abstract final class AppInfo {
   static const String tagline = 'Find anything you\'ve saved on your phone.';
 
   static const String privacyStatement = 'Your content stays on your device.';
+
+  /// Matches `pubspec.yaml` (`version:`). Single source for the About screen.
+  static const String version = '1.0.0';
+
+  /// Matches `pubspec.yaml` (`version+`).
+  static const String buildNumber = '1';
 }

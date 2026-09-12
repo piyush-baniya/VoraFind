@@ -1,28 +1,38 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/constants/app_info.dart';
+import '../../core/database/media_repository.dart' show MediaIndexStats;
+import '../../core/documents/document_providers.dart'
+    show contentAccessProvider;
 import '../../core/indexing/indexing_coordinator.dart';
 import '../../core/indexing/indexing_providers.dart';
 import '../../core/platform/content_access_models.dart' show ContentCategory;
+import '../../core/search/explore_providers.dart';
 import '../../core/search/search_error.dart';
-import '../../core/search/search_field.dart';
 import '../../core/search/search_providers.dart';
 import '../../core/search/search_query.dart';
 import '../../core/search/search_result.dart';
 import '../../core/search/similar_image_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/theme/app_tokens.dart';
 import '../../core/visual/image_visual_providers.dart'
     show imagePixelSourceProvider;
 import '../similar_images/similar_images_screen.dart';
+import '../shared/widgets/vora_result_tile.dart';
+import '../shared/widgets/vora_search_bar.dart';
+import '../shared/widgets/vora_surfaces.dart';
 
-/// VoraFind's primary surface: a search box over the local media index.
+/// VoraFind's primary surface (Search tab): the bottom-docked search bar over
+/// local content.
 ///
-/// Keeps the search field on its own `Timer` debounce so a full query is only
-/// sent to the Riverpod layer once the user pauses typing.
+/// Debounces typing (200 ms — fast enough for instant feel, slow enough to not
+/// re-run SQLite on every key), pushes [SearchQuery] into the Riverpod search
+/// layer, and renders ranked results inline. With no active query it shows
+/// discovery content (recency-ordered "Recent") or the honest first-run card
+/// when nothing is indexed yet.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -34,32 +44,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _controller = TextEditingController();
   Timer? _debounce;
   SearchQuery _query = const SearchQuery();
+  Set<ContentCategory> _categories = const {};
 
-  // Background indexing is driven by app lifecycle: the full local pipeline
-  // (media sync → documents → OCR) starts when the app comes to the
-  // foreground and is cancelled when it hides, so extraction never keeps
-  // chewing battery while the app is away (AGENTS.md §22).
-  late final AppLifecycleListener _lifecycleListener = AppLifecycleListener(
-    onResume: () => unawaited(ref.read(indexingCoordinatorProvider).start()),
-    onPause: () => ref.read(indexingCoordinatorProvider).cancel(),
-  );
+  static const _debounceDuration = Duration(milliseconds: 200);
 
   @override
   void initState() {
     super.initState();
-    // AppLifecycleListener.onResume does not fire on the initial attach, so
-    // the first indexing run is kicked once here; later runs are lifecycle-
-    // driven. The coordinator is single-flight, so both triggers coexist.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        unawaited(ref.read(indexingCoordinatorProvider).start());
-      }
-    });
   }
 
   @override
   void dispose() {
-    _lifecycleListener.dispose();
     _debounce?.cancel();
     _controller.dispose();
     super.dispose();
@@ -67,13 +62,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _onTextChanged(String text) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 250), () {
+    _debounce = Timer(_debounceDuration, () {
       _submit(text);
     });
   }
 
   void _submit(String text) {
-    final query = SearchQuery(text: text);
+    final query = SearchQuery(text: text, categories: _effectiveCategories);
     setState(() => _query = query);
     ref.read(searchResultsProvider.notifier).updateQuery(query);
   }
@@ -81,70 +76,104 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _clear() {
     _debounce?.cancel();
     _controller.clear();
-    setState(() => _query = const SearchQuery());
+    setState(() {
+      _categories = const {};
+      _query = const SearchQuery();
+    });
     ref.read(searchResultsProvider.notifier).updateQuery(_query);
+  }
+
+  List<ContentCategory>? get _effectiveCategories =>
+      _categories.isEmpty ? null : _categories.toList(growable: false);
+
+  Future<void> _openFilterSheet() async {
+    final selection = await showVoraFilterSheet(context, initial: _categories);
+    if (selection == null || !mounted) return;
+    setState(() => _categories = {...selection});
+    _submit(_controller.text);
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              const SizedBox(height: 16),
-              const _SearchHeader(),
-              const SizedBox(height: 20),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _SearchField(
-                  controller: _controller,
-                  onChanged: _onTextChanged,
-                  onSubmitted: (text) {
-                    _debounce?.cancel();
-                    _submit(text);
-                  },
-                  onClear: _clear,
-                ),
+    return Scaffold(
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            const _HomeHeader(),
+            Expanded(child: _buildBody()),
+            _indexingStatusLine(),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                VoraSpace.lg,
+                VoraSpace.xs,
+                VoraSpace.lg,
+                VoraSpace.md,
               ),
-              _indexingStatusLine(),
-              const SizedBox(height: 8),
-              Expanded(child: _buildBody(theme)),
-            ],
-          ),
+              child: Column(
+                children: [
+                  if (_categories.isNotEmpty)
+                    _ActiveFilterChip(
+                      label: _categories.first.name,
+                      onClear: _clear,
+                    ),
+                  const SizedBox(height: VoraSpace.sm),
+                  VoraSearchBar(
+                    controller: _controller,
+                    hintText: 'Search your device',
+                    onChanged: _onTextChanged,
+                    onSubmitted: (text) {
+                      _debounce?.cancel();
+                      _submit(text);
+                    },
+                    onClear: _clear,
+                    onTapFilter: _openFilterSheet,
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildBody(ThemeData theme) {
+  Widget _buildBody() {
     final searching = ref.watch(searchResultsProvider);
 
     if (!_query.hasContent) {
-      return const _IdleState();
+      return _DiscoveryView(
+        statsAsync: ref.watch(indexStatsProvider),
+        recentAsync: ref.watch(recentItemsProvider),
+      );
     }
 
     return searching.when(
-      loading: () => const _LoadingState(),
-      error: (error, _) => _ErrorState(
-        message: error is SearchException ? error.message : 'Search failed.',
+      loading: () => const VoraLoadingView(),
+      error: (error, _) => VoraEmptyState(
+        icon: Icons.error_outline_rounded,
+        title: 'Search failed',
+        caption: error is SearchException ? error.message : 'Search failed.',
       ),
       data: (outcome) {
         if (outcome.results.isEmpty) {
-          return const _NoResultsState();
+          return const VoraEmptyState(
+            icon: Icons.search_off_rounded,
+            title: 'No files matched',
+            caption: 'Try a different name, folder, or media word.',
+          );
         }
-        return _ResultsList(results: outcome.results);
+        return VoraResultList(
+          results: outcome.results,
+          topPadding: VoraSpace.sm,
+        );
       },
     );
   }
 
-  /// Slim indexing line under the search field. While a run is active it
-  /// shows live pipeline progress (so the phone does not "do nothing" while
-  /// the library is being indexed); a terminal state leaves a one-line
-  /// confirmation in the idle view with a Retry/Resume action where useful.
+  /// Slim indexing line above the search bar. While a run is active it shows
+  /// live pipeline progress; a terminal state leaves a one-line confirmation
+  /// with a Retry/Resume action where useful.
   Widget _indexingStatusLine() {
     final status = ref.watch(indexingStatusProvider);
     return status.maybeWhen(
@@ -160,6 +189,193 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       },
       orElse: () => const SizedBox.shrink(),
+    );
+  }
+}
+
+/// Compact brand row: the mark plus the wordmark, kept slim so the search
+/// field stays the primary interaction.
+class _HomeHeader extends StatelessWidget {
+  const _HomeHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      header: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, VoraSpace.lg, 0, VoraSpace.sm),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: context.vora.accentSubtle,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: context.vora.accentRing),
+              ),
+              child: SizedBox.square(
+                dimension: 34,
+                child: Icon(
+                  Icons.search_rounded,
+                  color: context.vora.accent,
+                  size: VoraIconSize.md,
+                ),
+              ),
+            ),
+            const SizedBox(width: VoraSpace.md),
+            Text(
+              AppInfo.name,
+              style: Theme.of(context).textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w600, letterSpacing: 0.2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Chip showing the active type filter with a one-tap clear.
+class _ActiveFilterChip extends StatelessWidget {
+  const _ActiveFilterChip({required this.label, required this.onClear});
+
+  final String label;
+  final VoidCallback onClear;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Chip(
+        avatar: const Icon(Icons.tune_rounded, size: VoraIconSize.sm),
+        label: Text(label),
+        deleteIcon: const Icon(Icons.close_rounded, size: VoraIconSize.sm),
+        onDeleted: onClear,
+      ),
+    );
+  }
+}
+
+/// Idle state: honest onboarding when the index is empty, otherwise the
+/// recency-ordered "Recent" discovery list.
+class _DiscoveryView extends ConsumerWidget {
+  const _DiscoveryView({required this.statsAsync, required this.recentAsync});
+
+  final AsyncValue<MediaIndexStats> statsAsync;
+  final AsyncValue<SearchOutcome> recentAsync;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return statsAsync.maybeWhen(
+      data: (stats) {
+        if (stats.total == 0) {
+          return _FirstRunState(onGiveAccess: () => _giveAccess(context, ref));
+        }
+        return _RecentList(recentAsync: recentAsync);
+      },
+      orElse: () => const VoraLoadingView(),
+    );
+  }
+
+  /// Requests media access (images) directly, then starts the pipeline — the
+  /// synchronization coordinator also requests access per volume, so this is
+  /// only the explicit first-run grant of the platform permission dialog.
+  static Future<void> _giveAccess(BuildContext context, WidgetRef ref) async {
+    final access = ref.read(contentAccessProvider);
+    try {
+      await access.requestMediaAccess(ContentCategory.images);
+    } on Exception {
+      // Permission failure isn't fatal; the coordinator surfaces the state in
+      // the indexing status line and retries on the next lifecycle run.
+    }
+    await ref.read(indexingCoordinatorProvider).start();
+  }
+}
+
+/// Pre-populated async widgets for the first-run flow are wired where the
+/// provider graph lives; see [_FirstRunState].
+class _FirstRunState extends StatelessWidget {
+  const _FirstRunState({required this.onGiveAccess});
+
+  final VoidCallback onGiveAccess;
+
+  @override
+  Widget build(BuildContext context) {
+    return VoraEmptyState(
+      icon: Icons.travel_explore_rounded,
+      title: 'Nothing indexed yet',
+      caption: 'Give VoraFind access and it will search files, photos, and documents saved on this device — everything stays here.',
+      action: FilledButton.icon(
+        onPressed: onGiveAccess,
+        icon: const Icon(Icons.folder_open_rounded, size: VoraIconSize.md),
+        label: const Text('Give access'),
+      ),
+    );
+  }
+}
+
+class _RecentList extends ConsumerWidget {
+  const _RecentList({required this.recentAsync});
+
+  final AsyncValue<SearchOutcome> recentAsync;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: VoraSpace.lg),
+          child: VoraSectionHeader(
+            title: 'Recent',
+            trailing: IconButton(
+              icon: const Icon(Icons.image_search_outlined),
+              color: context.vora.textSecondary,
+              tooltip: 'Find similar image',
+              onPressed: () => _pickSimilarImage(context, ref),
+            ),
+          ),
+        ),
+        Expanded(
+          child: recentAsync.maybeWhen(
+            data: (outcome) {
+              if (outcome.results.isEmpty) {
+                return const VoraEmptyState(
+                  icon: Icons.hourglass_empty_rounded,
+                  title: 'Indexing your files…',
+                  caption:
+                      'Your content appears here as the local index is built.',
+                );
+              }
+              return VoraResultList(results: outcome.results);
+            },
+            loading: () => const VoraLoadingView(),
+            orElse: () => const VoraLoadingView(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Flow B of similar-image search: pick any local image (system picker, no
+  /// storage permission), then compare it against the index using a fresh
+  /// on-device embedding that is never persisted.
+  static Future<void> _pickSimilarImage(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    final pixelSource = ref.read(imagePixelSourceProvider);
+    final pick = await pixelSource.pickImage();
+    if (pick.contentUri == null || !context.mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SimilarImagesScreen(
+          reference: SimilarImageReference(
+            contentUri: pick.contentUri!,
+            displayName: 'Selected image',
+          ),
+        ),
+      ),
     );
   }
 }
@@ -181,7 +397,12 @@ class _IndexingStatusTile extends StatelessWidget {
     final running = snapshot.isRunning;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 0),
+      padding: const EdgeInsets.fromLTRB(
+        VoraSpace.xl,
+        VoraSpace.sm,
+        VoraSpace.xl,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -193,14 +414,14 @@ class _IndexingStatusTile extends StatelessWidget {
                   height: 12,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: VoraSpace.sm),
               ] else ...[
                 Icon(
                   snapshot.phase == IndexingPhase.failed
                       ? Icons.error_outline_rounded
                       : Icons.task_alt_rounded,
                   size: 14,
-                  color: AppColors.textTertiary,
+                  color: context.vora.textTertiary,
                 ),
                 const SizedBox(width: 6),
               ],
@@ -210,14 +431,14 @@ class _IndexingStatusTile extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
+                    color: context.vora.textSecondary,
                   ),
                 ),
               ),
               if (!running) _terminalAction(theme),
             ],
           ),
-          ..._progressRows(),
+          ..._progressRows(context),
         ],
       ),
     );
@@ -282,7 +503,7 @@ class _IndexingStatusTile extends StatelessWidget {
     return 'Analyzing · ${parts.join(' · ')}';
   }
 
-  List<Widget> _progressRows() {
+  List<Widget> _progressRows(BuildContext context) {
     final fraction = _enrichFraction();
     if (fraction == null) return const [];
     return [
@@ -292,7 +513,7 @@ class _IndexingStatusTile extends StatelessWidget {
         child: LinearProgressIndicator(
           value: fraction,
           minHeight: 3,
-          backgroundColor: AppColors.divider,
+          backgroundColor: context.vora.divider,
         ),
       ),
     ];
@@ -313,549 +534,5 @@ class _IndexingStatusTile extends StatelessWidget {
       return (docProcessed / docTotal).clamp(0.0, 1.0);
     }
     return null;
-  }
-}
-
-/// Slim brand row: the mark plus the wordmark, kept compact so the search
-/// field stays the primary interaction.
-class _SearchHeader extends StatelessWidget {
-  const _SearchHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Semantics(
-      header: true,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.accentSubtle,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.accentRing),
-            ),
-            child: const SizedBox(
-              width: 36,
-              height: 36,
-              child: Icon(
-                Icons.search_rounded,
-                color: AppColors.accent,
-                size: 20,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            AppInfo.name,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SearchField extends StatelessWidget {
-  const _SearchField({
-    required this.controller,
-    required this.onChanged,
-    required this.onSubmitted,
-    required this.onClear,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final ValueChanged<String> onSubmitted;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      onSubmitted: onSubmitted,
-      textInputAction: TextInputAction.search,
-      autocorrect: false,
-      enableSuggestions: false,
-      style: theme.textTheme.bodyLarge,
-      decoration: InputDecoration(
-        hintText: 'Search your phone…',
-        hintStyle: theme.textTheme.bodyLarge?.copyWith(
-          color: AppColors.textTertiary,
-        ),
-        prefixIcon: const Icon(
-          Icons.search_rounded,
-          color: AppColors.textSecondary,
-        ),
-        suffixIcon: ValueListenableBuilder<TextEditingValue>(
-          valueListenable: controller,
-          builder: (context, value, _) {
-            if (value.text.isEmpty) {
-              return const SizedBox.shrink();
-            }
-            return IconButton(
-              icon: const Icon(
-                Icons.close_rounded,
-                color: AppColors.textSecondary,
-              ),
-              tooltip: 'Clear search',
-              onPressed: onClear,
-            );
-          },
-        ),
-        filled: true,
-        fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
-}
-
-/// Idle state before the user searches. When the index is empty this becomes
-/// an honest onboarding hint instead of pretending results will appear.
-class _IdleState extends ConsumerWidget {
-  const _IdleState();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final stats = ref.watch(indexStatsProvider);
-
-    return stats.maybeWhen(
-      data: (index) {
-        final empty = index.total == 0;
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.travel_explore_rounded,
-                  size: 48,
-                  color: AppColors.textTertiary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  empty
-                      ? 'Nothing indexed yet'
-                      : 'Find anything you have saved',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  empty
-                      ? 'VoraFind will search local files once the index is ready.'
-                      : 'Search files, folders, and music metadata — all on this device.',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                OutlinedButton.icon(
-                  onPressed: () => _pickSimilarImage(context, ref),
-                  icon: const Icon(Icons.image_search_outlined, size: 18),
-                  label: const Text('Find similar image'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textPrimary,
-                    side: const BorderSide(color: AppColors.divider),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-      orElse: () => const SizedBox.shrink(),
-    );
-  }
-
-  /// Flow B of similar-image search: pick any local image (system picker, no
-  /// storage permission), then compare it against the index using a fresh
-  /// on-device embedding that is never persisted.
-  Future<void> _pickSimilarImage(BuildContext context, WidgetRef ref) async {
-    final pixelSource = ref.read(imagePixelSourceProvider);
-    final pick = await pixelSource.pickImage();
-    if (pick.contentUri == null) return;
-    if (!context.mounted) return;
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => SimilarImagesScreen(
-          reference: SimilarImageReference(
-            contentUri: pick.contentUri!,
-            displayName: 'Selected image',
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _LoadingState extends StatelessWidget {
-  const _LoadingState();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: SizedBox(
-        width: 28,
-        height: 28,
-        child: CircularProgressIndicator(strokeWidth: 2.5),
-      ),
-    );
-  }
-}
-
-class _NoResultsState extends StatelessWidget {
-  const _NoResultsState();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.search_off_rounded,
-              size: 44,
-              color: AppColors.textTertiary,
-            ),
-            const SizedBox(height: 16),
-            Text('No files matched', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(
-              'Try a different name, folder, or media word.',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ErrorState extends StatelessWidget {
-  const _ErrorState({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.error_outline_rounded,
-              size: 44,
-              color: AppColors.textTertiary,
-            ),
-            const SizedBox(height: 16),
-            Text('Search failed', style: theme.textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ResultsList extends StatelessWidget {
-  const _ResultsList({required this.results});
-
-  final List<SearchResult> results;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-      itemCount: results.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (context, index) =>
-          _SearchResultTile(result: results[index]),
-    );
-  }
-}
-
-/// One ranked result. Includes the "why this matched" line the product
-/// mandates ("Matched in name: aadhaar, card"), so relevance is explainable.
-class _SearchResultTile extends StatelessWidget {
-  const _SearchResultTile({required this.result});
-
-  final SearchResult result;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final matchSummary = _matchSummary(result.matches);
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.divider),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CategoryGlyph(category: result.category),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    result.displayName,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall,
-                  ),
-                  if (result.relativePath != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      result.relativePath!,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 6),
-                  Text(
-                    _metaLine(),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  if (matchSummary.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      matchSummary,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            if (result.category == ContentCategory.images) ...[
-              const SizedBox(width: 4),
-              _SimilarAction(result: result),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _metaLine() {
-    final parts = <String>[_categoryLabel(result.category)];
-    final size = result.sizeBytes;
-    if (size != null) parts.add(_formatBytes(size));
-    final date = result.dateModified;
-    if (date != null) parts.add(_formatDate(date));
-    final duration = result.durationMs;
-    if (duration != null && duration > 0) parts.add(_formatDuration(duration));
-    return parts.join(' · ');
-  }
-
-  /// Composes the explainable match line from ranker diagnostics:
-  /// `Matched in name: aadhaar, card` (distinct tokens per field, joined).
-  /// When the *only* signal is conceptual similarity (no literal text matched)
-  /// the result shows `Semantic match` rather than the misleading "Matched in
-  /// semantic match" wording (Prompt #14 §22).
-  static String _matchSummary(List<MatchInfo> matches) {
-    if (matches.isEmpty) return '';
-    final byField = <SearchField, List<String>>{};
-    for (final match in matches) {
-      byField.putIfAbsent(match.field, () => []).add(match.token);
-    }
-    final semanticOnly = byField.keys.every((f) => f == SearchField.semantic);
-    if (semanticOnly) {
-      return 'Semantic match';
-    }
-    final visualOnly = byField.keys.every((f) => f == SearchField.visual);
-    if (visualOnly) {
-      final concept =
-          byField[SearchField.visual]!
-              .where((t) => t.isNotEmpty)
-              .toSet()
-              .toList()
-            ..sort();
-      // Classification labels only — never object localization/timestamps.
-      return concept.isEmpty
-          ? 'Visual match'
-          : 'Visual match: ${concept.join(', ')}';
-    }
-    final segments = byField.entries.map((entry) {
-      if (entry.key == SearchField.semantic) {
-        return 'conceptual similarity';
-      }
-      if (entry.key == SearchField.visual) {
-        final concepts = entry.value.toSet().where((t) => t.isNotEmpty).toList()
-          ..sort();
-        // Classification labels only — never object localization/timestamps.
-        return concepts.isEmpty
-            ? 'visual content'
-            : 'visual: ${concepts.join(', ')}';
-      }
-      final tokens = entry.value.toSet().where((t) => t.isNotEmpty).toList()
-        ..sort();
-      if (tokens.isEmpty) return _fieldLabel(entry.key);
-      return '${_fieldLabel(entry.key)}: ${tokens.join(', ')}';
-    });
-    return 'Matched in ${segments.join(' · ')}';
-  }
-
-  static String _fieldLabel(SearchField field) => switch (field) {
-    SearchField.displayName => 'name',
-    SearchField.title => 'title',
-    SearchField.relativePath => 'folder',
-    SearchField.bucketDisplayName => 'album',
-    SearchField.artist || SearchField.albumArtist => 'artist',
-    SearchField.album => 'album',
-    SearchField.genre => 'genre',
-    SearchField.ocrText => 'OCR text',
-    SearchField.documentText => 'document text',
-    SearchField.semantic => 'conceptual similarity',
-    SearchField.visual => 'visual content',
-  };
-
-  static String _categoryLabel(ContentCategory category) => switch (category) {
-    ContentCategory.images => 'Image',
-    ContentCategory.videos => 'Video',
-    ContentCategory.audio => 'Audio',
-    ContentCategory.documents => 'Document',
-  };
-
-  static String _formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    const units = ['KB', 'MB', 'GB'];
-    double value = bytes.toDouble();
-    var unit = -1;
-    while (value >= 1024 && unit < units.length - 1) {
-      value /= 1024;
-      unit++;
-    }
-    return '${value.toStringAsFixed(value >= 100 ? 0 : 1)} ${units[unit]}';
-  }
-
-  static String _formatDate(int epochSeconds) {
-    final date = DateTime.fromMillisecondsSinceEpoch(epochSeconds * 1000);
-    final local = date.toLocal();
-    final y = local.year.toString().padLeft(4, '0');
-    final m = local.month.toString().padLeft(2, '0');
-    final d = local.day.toString().padLeft(2, '0');
-    return '$y-$m-$d';
-  }
-
-  static String _formatDuration(int milliseconds) {
-    final totalSeconds = (milliseconds / 1000).round();
-    final hours = totalSeconds ~/ 3600;
-    final minutes = (totalSeconds % 3600) ~/ 60;
-    final seconds = totalSeconds % 60;
-    if (hours > 0) {
-      return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-    }
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-}
-
-class _CategoryGlyph extends StatelessWidget {
-  const _CategoryGlyph({required this.category});
-
-  final ContentCategory category;
-
-  @override
-  Widget build(BuildContext context) {
-    final (icon, color) = switch (category) {
-      ContentCategory.images => (Icons.image_outlined, AppColors.accent),
-      ContentCategory.videos => (Icons.videocam_outlined, AppColors.accent),
-      ContentCategory.audio => (Icons.music_note_rounded, AppColors.accent),
-      ContentCategory.documents => (
-        Icons.description_outlined,
-        AppColors.accent,
-      ),
-    };
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: AppColors.accentSubtle,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: SizedBox(
-        width: 40,
-        height: 40,
-        child: Icon(icon, color: color, size: 22),
-      ),
-    );
-  }
-}
-
-/// Flow A of similar-image search, surfaced on image results: the result's
-/// stored image feature is reused (no pixel decoding) and the result itself is
-/// excluded from its own result list.
-class _SimilarAction extends StatelessWidget {
-  const _SimilarAction({required this.result});
-
-  final SearchResult result;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: const Icon(Icons.image_search_outlined, size: 22),
-      color: AppColors.textSecondary,
-      tooltip: 'Find similar image',
-      visualDensity: VisualDensity.compact,
-      onPressed: () {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => SimilarImagesScreen(
-              reference: SimilarImageReference(
-                stableKey: result.stableKey,
-                contentUri: result.contentUri,
-                displayName: result.displayName,
-                relativePath: result.relativePath,
-                dateModified: result.dateModified,
-                imageWidth: result.width,
-                imageHeight: result.height,
-              ),
-            ),
-          ),
-        );
-      },
-    );
   }
 }
