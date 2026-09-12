@@ -12,6 +12,7 @@ import 'package:vorafind/core/ocr/ocr_coordinator.dart';
 import 'package:vorafind/core/ocr/ocr_models.dart' show OcrRunStatus;
 import 'package:vorafind/core/platform/content_access_models.dart';
 import 'package:vorafind/core/semantic/semantic_models.dart';
+import 'package:vorafind/core/visual/image_visual_models.dart';
 import 'package:vorafind/core/visual/visual_models.dart';
 
 /// Configurable media-sync stage that records cancellation requests.
@@ -73,6 +74,7 @@ IndexingCoordinator _coordinator({
   List<OcrRunProgress> ocrSnapshots = const [],
   Stream<SemanticRunProgress> Function()? runSemantic,
   Stream<VisualRunProgress> Function()? runVisual,
+  Stream<ImageVisualRunProgress> Function()? runImageVisual,
 }) {
   final docController = StreamController<DocumentRunProgress>.broadcast(
     sync: true,
@@ -102,8 +104,19 @@ IndexingCoordinator _coordinator({
     cancelSemantic: runSemantic == null ? null : () {},
     runVisual: runVisual,
     cancelVisual: runVisual == null ? null : () {},
+    runImageVisual: runImageVisual,
+    cancelImageVisual: runImageVisual == null ? null : () {},
   );
 }
+
+ImageVisualRunProgress _imageSnapshot(int processed, int total) =>
+    ImageVisualRunProgress(
+      status: ImageVisualRunStatus.running,
+      processed: processed,
+      total: total,
+      succeeded: processed,
+      failed: 0,
+    );
 
 void main() {
   group('IndexingCoordinator', () {
@@ -475,5 +488,104 @@ void main() {
         expect(coordinator.isRunning, isFalse);
       },
     );
+
+    test('image stage surfaces its progress in the status snapshot', () async {
+      final coordinator = _coordinator(
+        sync: FakeMediaSync(result: _syncResult(SyncSessionOutcome.completed)),
+        documentSummary: const DocumentRunSummary(
+          status: DocumentRunStatus.completed,
+        ),
+        ocrSummary: const OcrRunSummary(status: OcrRunStatus.completed),
+        runImageVisual: () async* {
+          yield _imageSnapshot(3, 7);
+        },
+      );
+
+      final outcome = await coordinator.start();
+
+      expect(outcome.phase, IndexingPhase.completed);
+      expect(outcome.imageVisualProcessed, 3);
+      expect(outcome.imageVisualTotal, 7);
+    });
+
+    test('image stage stream error never fails the run or wedges it', () async {
+      final coordinator = _coordinator(
+        sync: FakeMediaSync(result: _syncResult(SyncSessionOutcome.completed)),
+        documentSummary: const DocumentRunSummary(
+          status: DocumentRunStatus.completed,
+        ),
+        ocrSummary: const OcrRunSummary(status: OcrRunStatus.completed),
+        runImageVisual: () async* {
+          yield const ImageVisualRunProgress(
+            status: ImageVisualRunStatus.running,
+            processed: 0,
+            total: 0,
+            succeeded: 0,
+            failed: 0,
+          );
+          throw StateError('image embedding repository exploded');
+        },
+      );
+
+      final outcome = await coordinator.start();
+
+      expect(outcome.phase, IndexingPhase.completed);
+      expect(coordinator.isRunning, isFalse);
+    });
+
+    test(
+      'image stage cancellation still concludes the run as cancelled',
+      () async {
+        final coordinator = _coordinator(
+          sync: FakeMediaSync(
+            result: _syncResult(SyncSessionOutcome.completed),
+          ),
+          documentSummary: const DocumentRunSummary(
+            status: DocumentRunStatus.completed,
+          ),
+          ocrSummary: const OcrRunSummary(status: OcrRunStatus.completed),
+          runImageVisual: () async* {
+            yield const ImageVisualRunProgress(
+              status: ImageVisualRunStatus.cancelled,
+              processed: 0,
+              total: 0,
+              succeeded: 0,
+              failed: 0,
+            );
+          },
+        );
+
+        final outcome = await coordinator.start();
+
+        expect(outcome.phase, IndexingPhase.cancelled);
+        expect(coordinator.isRunning, isFalse);
+      },
+    );
+
+    test('cancel reaches the image stage when active', () async {
+      var imageCancelCount = 0;
+      final coordinator = IndexingCoordinator(
+        mediaSync: FakeMediaSync(
+          result: _syncResult(SyncSessionOutcome.completed),
+        ),
+        runDocuments: () async =>
+            const DocumentRunSummary(status: DocumentRunStatus.completed),
+        cancelDocuments: () {},
+        documentProgress: const Stream<DocumentRunProgress>.empty(),
+        runOcr: () async => const OcrRunSummary(status: OcrRunStatus.completed),
+        cancelOcr: () {},
+        ocrProgress: const Stream<OcrRunProgress>.empty(),
+        mediaStats: () async =>
+            const MediaIndexStats(total: 1, byCategory: {}, volumeCount: 1),
+        runImageVisual: () => const Stream<ImageVisualRunProgress>.empty(),
+        cancelImageVisual: () => imageCancelCount++,
+      );
+
+      final run = coordinator.start();
+      coordinator.cancel();
+      await run;
+
+      expect(imageCancelCount, 1);
+    });
   });
 }

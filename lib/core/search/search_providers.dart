@@ -4,10 +4,16 @@ import '../database/media_repository.dart';
 import '../database/providers.dart';
 import '../documents/document_providers.dart';
 import '../semantic/semantic_providers.dart';
+import '../visual/image_visual_providers.dart'
+    show
+        imageEmbeddingProviderProvider,
+        imagePixelSourceProvider,
+        imageVisualSearchRepositoryProvider;
 import '../visual/visual_providers.dart' show visualSearchRepositoryProvider;
 import 'search_query.dart';
 import 'search_result.dart';
 import 'search_service.dart';
+import 'similar_image_service.dart';
 
 /// Creates a search over the durable media and document index.
 final searchServiceProvider = Provider<SearchService>((ref) {
@@ -17,6 +23,16 @@ final searchServiceProvider = Provider<SearchService>((ref) {
     semanticSearchRepository: ref.watch(semanticSearchRepositoryProvider),
     embeddingProvider: ref.watch(embeddingProvider),
     visualSearchRepository: ref.watch(visualSearchRepositoryProvider),
+  );
+});
+
+/// Creates the local image-to-image similarity service.
+final similarImageServiceProvider = Provider<SimilarImageService>((ref) {
+  return SimilarImageService(
+    searchRepository: ref.watch(imageVisualSearchRepositoryProvider),
+    embeddingProvider: ref.watch(imageEmbeddingProviderProvider),
+    pixelSource: ref.watch(imagePixelSourceProvider),
+    mediaRepository: ref.watch(mediaRepositoryProvider),
   );
 });
 

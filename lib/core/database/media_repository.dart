@@ -419,6 +419,9 @@ class DriftMediaRepository implements MediaRepository {
     await (_db.delete(
       _db.videoVisualFrames,
     )..where((row) => row.stableKey.equals(stableKey))).go();
+    await (_db.delete(
+      _db.imageVisualEmbeddings,
+    )..where((row) => row.stableKey.equals(stableKey))).go();
     final deleted = await (_db.delete(
       _db.mediaItems,
     )..where((row) => row.stableKey.equals(stableKey))).go();
@@ -444,6 +447,9 @@ class DriftMediaRepository implements MediaRepository {
       )..where((row) => row.stableKey.isIn(chunk))).go();
       await (_db.delete(
         _db.videoVisualFrames,
+      )..where((row) => row.stableKey.isIn(chunk))).go();
+      await (_db.delete(
+        _db.imageVisualEmbeddings,
       )..where((row) => row.stableKey.isIn(chunk))).go();
       await (_db.delete(
         _db.mediaItems,

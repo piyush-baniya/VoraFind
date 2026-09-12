@@ -47,14 +47,16 @@ final class _OrtApi {
 }
 
 /// A loaded, CPU-only ONNX Runtime session for a single float-input,
-/// float-output image classifier (the bundled MobileNetV2 — one batch, one
-/// image, logits out).
+/// float-output image model (the bundled MobileNetV2 — one batch, one image).
+/// Serves both the classifier head ([classify], 1000 logits) and the sliced
+/// feature embedding ([embed], 1280 values), which are the same graph forward
+/// pass minus the classification head.
 ///
 /// Mirrors the BERT runtime's ownership pattern: environment and session live
-/// on the owning (main) isolate, while each [classify] run happens in a fresh
-/// worker isolate that reopens the library, re-negotiates the API pointer, and
-/// reuses this session's pointer address. Only the 1000 logits (or one error)
-/// cross the isolate boundary.
+/// on the owning (main) isolate, while each [classify]/[embed] run happens in
+/// a fresh worker isolate that reopens the library, re-negotiates the API
+/// pointer, and reuses this session's pointer address. Only the fixed-length
+/// float output (or one error) crosses the isolate boundary.
 class VisionOnnxSession {
   VisionOnnxSession._(
     this._api,
@@ -167,7 +169,29 @@ class VisionOnnxSession {
         inputName: inputName,
         outputName: outputName,
         imageNchw: imageNchw,
-        classCount: 1000,
+        expectedCount: 1000,
+      ),
+    );
+  }
+
+  /// Runs the model on one preprocessed image tensor and returns the raw
+  /// feature embedding of [dimension] values — the sliced MobileNetV2
+  /// GlobalAveragePool output ahead of the 1000-class classification head
+  /// (docs `similar-image-search.md` §Selected model).
+  ///
+  /// Same worker-isolate and threading contract as [classify]; only the
+  /// expected output length differs.
+  Future<Float32List> embed(Float32List imageNchw, {required int dimension}) {
+    final sessionAddress = _session.address;
+    final inputName = _inputName;
+    final outputName = _outputName;
+    return Isolate.run(
+      () => _classifyIsolate(
+        sessionAddress: sessionAddress,
+        inputName: inputName,
+        outputName: outputName,
+        imageNchw: imageNchw,
+        expectedCount: dimension,
       ),
     );
   }
@@ -275,7 +299,7 @@ Float32List _classifyIsolate({
   required String inputName,
   required String outputName,
   required Float32List imageNchw,
-  required int classCount,
+  required int expectedCount,
 }) {
   final api = _OrtApi();
   final session = ffi.Pointer<bg.OrtSession>.fromAddress(sessionAddress);
@@ -345,7 +369,7 @@ Float32List _classifyIsolate({
       final logits = _readFloatTensor(
         api,
         outputValue,
-        expectedCount: classCount,
+        expectedCount: expectedCount,
       );
       api.ptr.ref.ReleaseValue
           .asFunction<void Function(ffi.Pointer<bg.OrtValue>)>()(outputValue);
@@ -492,7 +516,7 @@ Float32List _readFloatTensor(
 
   if (count != expectedCount) {
     throw OnnxRuntimeException(
-      'unexpected tensor length $count (expected $expectedCount logits)',
+      'unexpected tensor length $count (expected $expectedCount values)',
     );
   }
   return dataPtr.cast<ffi.Float>().asTypedList(count);

@@ -64,12 +64,14 @@ flutter:
   # Bundled on-device models (fully offline, never downloaded at runtime).
   # Semantic: int8 all-MiniLM-L6-v2 + WordPiece vocabulary (semantic-search).
   # Visual: int8 MobileNetV2 + ImageNet labels for video frame classification
-  # (video-visual-search).
+  # (video-visual-search); the sliced MobileNetV2 feature graph for image
+  # similarity (similar-image-search).
   assets:
     - assets/models/model_quantized.onnx
     - assets/models/vocab.txt
     - assets/models/mobilenetv2_int8.onnx
     - assets/models/synset.txt
+    - assets/models/mobilenetv2_features.onnx
 
   # To add assets to your application, add an assets section, like this:
   # assets:

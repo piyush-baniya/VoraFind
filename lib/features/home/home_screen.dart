@@ -13,7 +13,11 @@ import '../../core/search/search_field.dart';
 import '../../core/search/search_providers.dart';
 import '../../core/search/search_query.dart';
 import '../../core/search/search_result.dart';
+import '../../core/search/similar_image_service.dart';
 import '../../core/theme/app_colors.dart';
+import '../../core/visual/image_visual_providers.dart'
+    show imagePixelSourceProvider;
+import '../similar_images/similar_images_screen.dart';
 
 /// VoraFind's primary surface: a search box over the local media index.
 ///
@@ -459,12 +463,43 @@ class _IdleState extends ConsumerWidget {
                     color: AppColors.textSecondary,
                   ),
                 ),
+                const SizedBox(height: 20),
+                OutlinedButton.icon(
+                  onPressed: () => _pickSimilarImage(context, ref),
+                  icon: const Icon(Icons.image_search_outlined, size: 18),
+                  label: const Text('Find similar image'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.textPrimary,
+                    side: const BorderSide(color: AppColors.divider),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
               ],
             ),
           ),
         );
       },
       orElse: () => const SizedBox.shrink(),
+    );
+  }
+
+  /// Flow B of similar-image search: pick any local image (system picker, no
+  /// storage permission), then compare it against the index using a fresh
+  /// on-device embedding that is never persisted.
+  Future<void> _pickSimilarImage(BuildContext context, WidgetRef ref) async {
+    final pixelSource = ref.read(imagePixelSourceProvider);
+    final pick = await pixelSource.pickImage();
+    if (pick.contentUri == null) return;
+    if (!context.mounted) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SimilarImagesScreen(
+          reference: SimilarImageReference(
+            contentUri: pick.contentUri!,
+            displayName: 'Selected image',
+          ),
+        ),
+      ),
     );
   }
 }
@@ -636,6 +671,10 @@ class _SearchResultTile extends StatelessWidget {
                 ],
               ),
             ),
+            if (result.category == ContentCategory.images) ...[
+              const SizedBox(width: 4),
+              _SimilarAction(result: result),
+            ],
           ],
         ),
       ),
@@ -781,6 +820,42 @@ class _CategoryGlyph extends StatelessWidget {
         height: 40,
         child: Icon(icon, color: color, size: 22),
       ),
+    );
+  }
+}
+
+/// Flow A of similar-image search, surfaced on image results: the result's
+/// stored image feature is reused (no pixel decoding) and the result itself is
+/// excluded from its own result list.
+class _SimilarAction extends StatelessWidget {
+  const _SimilarAction({required this.result});
+
+  final SearchResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      icon: const Icon(Icons.image_search_outlined, size: 22),
+      color: AppColors.textSecondary,
+      tooltip: 'Find similar image',
+      visualDensity: VisualDensity.compact,
+      onPressed: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => SimilarImagesScreen(
+              reference: SimilarImageReference(
+                stableKey: result.stableKey,
+                contentUri: result.contentUri,
+                displayName: result.displayName,
+                relativePath: result.relativePath,
+                dateModified: result.dateModified,
+                imageWidth: result.width,
+                imageHeight: result.height,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

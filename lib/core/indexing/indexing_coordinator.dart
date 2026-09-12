@@ -9,6 +9,8 @@ import '../ocr/ocr_models.dart';
 import '../platform/content_access_models.dart';
 import '../semantic/semantic_index_coordinator.dart';
 import '../semantic/semantic_models.dart';
+import '../visual/image_visual_models.dart'
+    show ImageVisualRunProgress, ImageVisualRunStatus;
 import '../visual/visual_models.dart' show VisualRunProgress, VisualRunStatus;
 
 /// High-level lifecycle of the whole indexing pipeline (docs
@@ -60,6 +62,8 @@ class IndexingStatus {
     this.semanticTotal,
     this.visualProcessed,
     this.visualTotal,
+    this.imageVisualProcessed,
+    this.imageVisualTotal,
     this.message,
   });
 
@@ -91,6 +95,11 @@ class IndexingStatus {
   final int? visualProcessed;
   final int? visualTotal;
 
+  /// Image-feature enrichment progress (processed/total eligible images). Null
+  /// when the image embedding provider is unavailable.
+  final int? imageVisualProcessed;
+  final int? imageVisualTotal;
+
   /// Short, user-safe explanation for [IndexingPhase.failed] runs. Never
   /// contains stack traces or user content.
   final String? message;
@@ -110,7 +119,7 @@ abstract interface class IndexingMediaSync {
 }
 
 /// Drives one full indexing run: media sync → documents → OCR → semantic →
-/// visual.
+/// visual → image-feature.
 ///
 /// Composes the existing coordinators behind a single [IndexingStatus] stream
 /// without replacing them (AGENTS.md §2/§29). A run:
@@ -120,12 +129,14 @@ abstract interface class IndexingMediaSync {
 /// 3. drains the OCR queue,
 /// 4. drains the semantic embedding queue (if a provider is available),
 /// 5. drains the video visual enrichment queue (if a classifier is available),
-/// 6. reports [IndexingPhase.completed] (or cancelled/failed).
+/// 6. drains the image-feature enrichment queue (if an embedding provider is
+///    available),
+/// 7. reports [IndexingPhase.completed] (or cancelled/failed).
 ///
 /// Failure isolation: per-file failures never reach this coordinator — the
 /// sub-coordinators persist durable failed/unsupported rows instead. Only a
-/// stage-level failure (no access, DB error) fails the run. Semantic- and
-/// visual-stage failures are non-fatal: metadata/OCR/document/search keep
+/// stage-level failure (no access, DB error) fails the run. Semantic-, video-,
+/// and image-stage failures are non-fatal: metadata/OCR/document/search keep
 /// working.
 ///
 /// Cancellation is cooperative at stage boundaries; work persisted before the
@@ -144,6 +155,8 @@ class IndexingCoordinator {
     this.cancelSemantic,
     this.runVisual,
     this.cancelVisual,
+    this.runImageVisual,
+    this.cancelImageVisual,
   });
 
   static const List<ContentCategory> _mediaCategories = [
@@ -178,6 +191,12 @@ class IndexingCoordinator {
   /// skipped entirely and the rest of the pipeline is unaffected.
   final Stream<VisualRunProgress> Function()? runVisual;
   final void Function()? cancelVisual;
+
+  /// Image-feature enrichment stage entry points (wired to
+  /// [ImageVisualIndexCoordinator]). Optional: when null, the image stage is
+  /// skipped entirely and the rest of the pipeline is unaffected.
+  final Stream<ImageVisualRunProgress> Function()? runImageVisual;
+  final void Function()? cancelImageVisual;
 
   final StreamController<IndexingStatus> _status =
       StreamController<IndexingStatus>.broadcast();
@@ -261,6 +280,7 @@ class IndexingCoordinator {
     cancelOcr();
     cancelSemantic?.call();
     cancelVisual?.call();
+    cancelImageVisual?.call();
   }
 
   /// Drains document extraction, then OCR, then semantic embedding, reporting
@@ -369,6 +389,37 @@ class IndexingCoordinator {
       // visual failed/unavailable is intentionally non-fatal
     }
 
+    // Image-feature stage is optional and non-fatal (mirrors the semantic and
+    // visual stages): a failure here does not fail the run, and an unavailable
+    // provider simply skips the stage.
+    if (runImageVisual != null) {
+      var imageVisualCancelled = false;
+      try {
+        await for (final snapshot in runImageVisual!()) {
+          _emit(
+            _rebuild(
+              imageVisualProcessed: snapshot.processed,
+              imageVisualTotal: snapshot.total,
+            ),
+          );
+          if (snapshot.status == ImageVisualRunStatus.cancelled) {
+            imageVisualCancelled = true;
+            break;
+          }
+          if (snapshot.status == ImageVisualRunStatus.completed ||
+              snapshot.status == ImageVisualRunStatus.failed ||
+              snapshot.status == ImageVisualRunStatus.unavailable) {
+            break;
+          }
+        }
+      } catch (_) {
+        // Same containment as the semantic/visual stages; image-feature
+        // failure stays non-fatal and the run can never be wedged.
+      }
+      if (imageVisualCancelled) return false;
+      // image failed/unavailable is intentionally non-fatal
+    }
+
     return true;
   }
 
@@ -395,6 +446,8 @@ class IndexingCoordinator {
     int? semanticTotal,
     int? visualProcessed,
     int? visualTotal,
+    int? imageVisualProcessed,
+    int? imageVisualTotal,
   }) {
     final current = _last ?? const IndexingStatus.idle();
     return IndexingStatus(
@@ -409,6 +462,9 @@ class IndexingCoordinator {
       semanticTotal: semanticTotal ?? current.semanticTotal,
       visualProcessed: visualProcessed ?? current.visualProcessed,
       visualTotal: visualTotal ?? current.visualTotal,
+      imageVisualProcessed:
+          imageVisualProcessed ?? current.imageVisualProcessed,
+      imageVisualTotal: imageVisualTotal ?? current.imageVisualTotal,
       message: current.message,
     );
   }

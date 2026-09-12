@@ -6406,6 +6406,664 @@ class VideoVisualFramesCompanion extends UpdateCompanion<VideoVisualFrame> {
   }
 }
 
+class $ImageVisualEmbeddingsTable extends ImageVisualEmbeddings
+    with TableInfo<$ImageVisualEmbeddingsTable, ImageVisualEmbedding> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ImageVisualEmbeddingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _stableKeyMeta = const VerificationMeta(
+    'stableKey',
+  );
+  @override
+  late final GeneratedColumn<String> stableKey = GeneratedColumn<String>(
+    'stable_key',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sourceRevisionMeta = const VerificationMeta(
+    'sourceRevision',
+  );
+  @override
+  late final GeneratedColumn<int> sourceRevision = GeneratedColumn<int>(
+    'source_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _modelIdMeta = const VerificationMeta(
+    'modelId',
+  );
+  @override
+  late final GeneratedColumn<String> modelId = GeneratedColumn<String>(
+    'model_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dimensionsMeta = const VerificationMeta(
+    'dimensions',
+  );
+  @override
+  late final GeneratedColumn<int> dimensions = GeneratedColumn<int>(
+    'dimensions',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _embeddingDataMeta = const VerificationMeta(
+    'embeddingData',
+  );
+  @override
+  late final GeneratedColumn<Uint8List> embeddingData =
+      GeneratedColumn<Uint8List>(
+        'embedding_data',
+        aliasedName,
+        true,
+        type: DriftSqlType.blob,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _quantizationMeta = const VerificationMeta(
+    'quantization',
+  );
+  @override
+  late final GeneratedColumn<String> quantization = GeneratedColumn<String>(
+    'quantization',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+    'status',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _errorCodeMeta = const VerificationMeta(
+    'errorCode',
+  );
+  @override
+  late final GeneratedColumn<String> errorCode = GeneratedColumn<String>(
+    'error_code',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    stableKey,
+    sourceRevision,
+    modelId,
+    dimensions,
+    embeddingData,
+    quantization,
+    status,
+    errorCode,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'image_visual_embeddings';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ImageVisualEmbedding> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('stable_key')) {
+      context.handle(
+        _stableKeyMeta,
+        stableKey.isAcceptableOrUnknown(data['stable_key']!, _stableKeyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_stableKeyMeta);
+    }
+    if (data.containsKey('source_revision')) {
+      context.handle(
+        _sourceRevisionMeta,
+        sourceRevision.isAcceptableOrUnknown(
+          data['source_revision']!,
+          _sourceRevisionMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceRevisionMeta);
+    }
+    if (data.containsKey('model_id')) {
+      context.handle(
+        _modelIdMeta,
+        modelId.isAcceptableOrUnknown(data['model_id']!, _modelIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_modelIdMeta);
+    }
+    if (data.containsKey('dimensions')) {
+      context.handle(
+        _dimensionsMeta,
+        dimensions.isAcceptableOrUnknown(data['dimensions']!, _dimensionsMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dimensionsMeta);
+    }
+    if (data.containsKey('embedding_data')) {
+      context.handle(
+        _embeddingDataMeta,
+        embeddingData.isAcceptableOrUnknown(
+          data['embedding_data']!,
+          _embeddingDataMeta,
+        ),
+      );
+    }
+    if (data.containsKey('quantization')) {
+      context.handle(
+        _quantizationMeta,
+        quantization.isAcceptableOrUnknown(
+          data['quantization']!,
+          _quantizationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('status')) {
+      context.handle(
+        _statusMeta,
+        status.isAcceptableOrUnknown(data['status']!, _statusMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_statusMeta);
+    }
+    if (data.containsKey('error_code')) {
+      context.handle(
+        _errorCodeMeta,
+        errorCode.isAcceptableOrUnknown(data['error_code']!, _errorCodeMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {stableKey};
+  @override
+  ImageVisualEmbedding map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ImageVisualEmbedding(
+      stableKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}stable_key'],
+      )!,
+      sourceRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}source_revision'],
+      )!,
+      modelId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}model_id'],
+      )!,
+      dimensions: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}dimensions'],
+      )!,
+      embeddingData: attachedDatabase.typeMapping.read(
+        DriftSqlType.blob,
+        data['${effectivePrefix}embedding_data'],
+      ),
+      quantization: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}quantization'],
+      ),
+      status: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}status'],
+      )!,
+      errorCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}error_code'],
+      ),
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ImageVisualEmbeddingsTable createAlias(String alias) {
+    return $ImageVisualEmbeddingsTable(attachedDatabase, alias);
+  }
+}
+
+class ImageVisualEmbedding extends DataClass
+    implements Insertable<ImageVisualEmbedding> {
+  /// Stable identity of the source media row (`media_items.stable_key`).
+  final String stableKey;
+
+  /// `media_items.metadata_revision` at embedding time. A revision bump makes
+  /// the vector stale.
+  final int sourceRevision;
+
+  /// The image-feature model that produced the vector
+  /// (`ImageVisualDefaults.modelId`). A model change invalidates all rows.
+  final String modelId;
+
+  /// Vector dimensionality (the provider's `dimensions`).
+  final int dimensions;
+
+  /// Serially encoded vector bytes (little-endian Float32 when [quantization]
+  /// is [ImageVisualDefaults.quantizationF32]); null while not completed.
+  final Uint8List? embeddingData;
+
+  /// Encoding tag for [embeddingData] ([ImageVisualDefaults.quantizationF32]).
+  final String? quantization;
+
+  /// Durable embedding status ([ImageVisualStatus.name]).
+  final String status;
+
+  /// Stable failure code (`ImageVisualErrorCode.name`); null when not an error.
+  final String? errorCode;
+
+  /// Epoch seconds of the first write.
+  final int createdAt;
+
+  /// Epoch seconds of the most recent write (drives retry cooldowns).
+  final int updatedAt;
+  const ImageVisualEmbedding({
+    required this.stableKey,
+    required this.sourceRevision,
+    required this.modelId,
+    required this.dimensions,
+    this.embeddingData,
+    this.quantization,
+    required this.status,
+    this.errorCode,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['stable_key'] = Variable<String>(stableKey);
+    map['source_revision'] = Variable<int>(sourceRevision);
+    map['model_id'] = Variable<String>(modelId);
+    map['dimensions'] = Variable<int>(dimensions);
+    if (!nullToAbsent || embeddingData != null) {
+      map['embedding_data'] = Variable<Uint8List>(embeddingData);
+    }
+    if (!nullToAbsent || quantization != null) {
+      map['quantization'] = Variable<String>(quantization);
+    }
+    map['status'] = Variable<String>(status);
+    if (!nullToAbsent || errorCode != null) {
+      map['error_code'] = Variable<String>(errorCode);
+    }
+    map['created_at'] = Variable<int>(createdAt);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  ImageVisualEmbeddingsCompanion toCompanion(bool nullToAbsent) {
+    return ImageVisualEmbeddingsCompanion(
+      stableKey: Value(stableKey),
+      sourceRevision: Value(sourceRevision),
+      modelId: Value(modelId),
+      dimensions: Value(dimensions),
+      embeddingData: embeddingData == null && nullToAbsent
+          ? const Value.absent()
+          : Value(embeddingData),
+      quantization: quantization == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quantization),
+      status: Value(status),
+      errorCode: errorCode == null && nullToAbsent
+          ? const Value.absent()
+          : Value(errorCode),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ImageVisualEmbedding.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ImageVisualEmbedding(
+      stableKey: serializer.fromJson<String>(json['stableKey']),
+      sourceRevision: serializer.fromJson<int>(json['sourceRevision']),
+      modelId: serializer.fromJson<String>(json['modelId']),
+      dimensions: serializer.fromJson<int>(json['dimensions']),
+      embeddingData: serializer.fromJson<Uint8List?>(json['embeddingData']),
+      quantization: serializer.fromJson<String?>(json['quantization']),
+      status: serializer.fromJson<String>(json['status']),
+      errorCode: serializer.fromJson<String?>(json['errorCode']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'stableKey': serializer.toJson<String>(stableKey),
+      'sourceRevision': serializer.toJson<int>(sourceRevision),
+      'modelId': serializer.toJson<String>(modelId),
+      'dimensions': serializer.toJson<int>(dimensions),
+      'embeddingData': serializer.toJson<Uint8List?>(embeddingData),
+      'quantization': serializer.toJson<String?>(quantization),
+      'status': serializer.toJson<String>(status),
+      'errorCode': serializer.toJson<String?>(errorCode),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  ImageVisualEmbedding copyWith({
+    String? stableKey,
+    int? sourceRevision,
+    String? modelId,
+    int? dimensions,
+    Value<Uint8List?> embeddingData = const Value.absent(),
+    Value<String?> quantization = const Value.absent(),
+    String? status,
+    Value<String?> errorCode = const Value.absent(),
+    int? createdAt,
+    int? updatedAt,
+  }) => ImageVisualEmbedding(
+    stableKey: stableKey ?? this.stableKey,
+    sourceRevision: sourceRevision ?? this.sourceRevision,
+    modelId: modelId ?? this.modelId,
+    dimensions: dimensions ?? this.dimensions,
+    embeddingData: embeddingData.present
+        ? embeddingData.value
+        : this.embeddingData,
+    quantization: quantization.present ? quantization.value : this.quantization,
+    status: status ?? this.status,
+    errorCode: errorCode.present ? errorCode.value : this.errorCode,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ImageVisualEmbedding copyWithCompanion(ImageVisualEmbeddingsCompanion data) {
+    return ImageVisualEmbedding(
+      stableKey: data.stableKey.present ? data.stableKey.value : this.stableKey,
+      sourceRevision: data.sourceRevision.present
+          ? data.sourceRevision.value
+          : this.sourceRevision,
+      modelId: data.modelId.present ? data.modelId.value : this.modelId,
+      dimensions: data.dimensions.present
+          ? data.dimensions.value
+          : this.dimensions,
+      embeddingData: data.embeddingData.present
+          ? data.embeddingData.value
+          : this.embeddingData,
+      quantization: data.quantization.present
+          ? data.quantization.value
+          : this.quantization,
+      status: data.status.present ? data.status.value : this.status,
+      errorCode: data.errorCode.present ? data.errorCode.value : this.errorCode,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ImageVisualEmbedding(')
+          ..write('stableKey: $stableKey, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('modelId: $modelId, ')
+          ..write('dimensions: $dimensions, ')
+          ..write('embeddingData: $embeddingData, ')
+          ..write('quantization: $quantization, ')
+          ..write('status: $status, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    stableKey,
+    sourceRevision,
+    modelId,
+    dimensions,
+    $driftBlobEquality.hash(embeddingData),
+    quantization,
+    status,
+    errorCode,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ImageVisualEmbedding &&
+          other.stableKey == this.stableKey &&
+          other.sourceRevision == this.sourceRevision &&
+          other.modelId == this.modelId &&
+          other.dimensions == this.dimensions &&
+          $driftBlobEquality.equals(other.embeddingData, this.embeddingData) &&
+          other.quantization == this.quantization &&
+          other.status == this.status &&
+          other.errorCode == this.errorCode &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ImageVisualEmbeddingsCompanion
+    extends UpdateCompanion<ImageVisualEmbedding> {
+  final Value<String> stableKey;
+  final Value<int> sourceRevision;
+  final Value<String> modelId;
+  final Value<int> dimensions;
+  final Value<Uint8List?> embeddingData;
+  final Value<String?> quantization;
+  final Value<String> status;
+  final Value<String?> errorCode;
+  final Value<int> createdAt;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const ImageVisualEmbeddingsCompanion({
+    this.stableKey = const Value.absent(),
+    this.sourceRevision = const Value.absent(),
+    this.modelId = const Value.absent(),
+    this.dimensions = const Value.absent(),
+    this.embeddingData = const Value.absent(),
+    this.quantization = const Value.absent(),
+    this.status = const Value.absent(),
+    this.errorCode = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ImageVisualEmbeddingsCompanion.insert({
+    required String stableKey,
+    required int sourceRevision,
+    required String modelId,
+    required int dimensions,
+    this.embeddingData = const Value.absent(),
+    this.quantization = const Value.absent(),
+    required String status,
+    this.errorCode = const Value.absent(),
+    required int createdAt,
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : stableKey = Value(stableKey),
+       sourceRevision = Value(sourceRevision),
+       modelId = Value(modelId),
+       dimensions = Value(dimensions),
+       status = Value(status),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ImageVisualEmbedding> custom({
+    Expression<String>? stableKey,
+    Expression<int>? sourceRevision,
+    Expression<String>? modelId,
+    Expression<int>? dimensions,
+    Expression<Uint8List>? embeddingData,
+    Expression<String>? quantization,
+    Expression<String>? status,
+    Expression<String>? errorCode,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (stableKey != null) 'stable_key': stableKey,
+      if (sourceRevision != null) 'source_revision': sourceRevision,
+      if (modelId != null) 'model_id': modelId,
+      if (dimensions != null) 'dimensions': dimensions,
+      if (embeddingData != null) 'embedding_data': embeddingData,
+      if (quantization != null) 'quantization': quantization,
+      if (status != null) 'status': status,
+      if (errorCode != null) 'error_code': errorCode,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ImageVisualEmbeddingsCompanion copyWith({
+    Value<String>? stableKey,
+    Value<int>? sourceRevision,
+    Value<String>? modelId,
+    Value<int>? dimensions,
+    Value<Uint8List?>? embeddingData,
+    Value<String?>? quantization,
+    Value<String>? status,
+    Value<String?>? errorCode,
+    Value<int>? createdAt,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ImageVisualEmbeddingsCompanion(
+      stableKey: stableKey ?? this.stableKey,
+      sourceRevision: sourceRevision ?? this.sourceRevision,
+      modelId: modelId ?? this.modelId,
+      dimensions: dimensions ?? this.dimensions,
+      embeddingData: embeddingData ?? this.embeddingData,
+      quantization: quantization ?? this.quantization,
+      status: status ?? this.status,
+      errorCode: errorCode ?? this.errorCode,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (stableKey.present) {
+      map['stable_key'] = Variable<String>(stableKey.value);
+    }
+    if (sourceRevision.present) {
+      map['source_revision'] = Variable<int>(sourceRevision.value);
+    }
+    if (modelId.present) {
+      map['model_id'] = Variable<String>(modelId.value);
+    }
+    if (dimensions.present) {
+      map['dimensions'] = Variable<int>(dimensions.value);
+    }
+    if (embeddingData.present) {
+      map['embedding_data'] = Variable<Uint8List>(embeddingData.value);
+    }
+    if (quantization.present) {
+      map['quantization'] = Variable<String>(quantization.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (errorCode.present) {
+      map['error_code'] = Variable<String>(errorCode.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ImageVisualEmbeddingsCompanion(')
+          ..write('stableKey: $stableKey, ')
+          ..write('sourceRevision: $sourceRevision, ')
+          ..write('modelId: $modelId, ')
+          ..write('dimensions: $dimensions, ')
+          ..write('embeddingData: $embeddingData, ')
+          ..write('quantization: $quantization, ')
+          ..write('status: $status, ')
+          ..write('errorCode: $errorCode, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -6423,6 +7081,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $VideoVisualStatusTable(this);
   late final $VideoVisualFramesTable videoVisualFrames =
       $VideoVisualFramesTable(this);
+  late final $ImageVisualEmbeddingsTable imageVisualEmbeddings =
+      $ImageVisualEmbeddingsTable(this);
   late final Index idxMediaCategoryDateModified = Index(
     'idx_media_category_date_modified',
     'CREATE INDEX idx_media_category_date_modified ON media_items (category, date_modified)',
@@ -6479,6 +7139,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_vvf_stable_key',
     'CREATE INDEX idx_vvf_stable_key ON video_visual_frames (stable_key)',
   );
+  late final Index idxImageVisualStatusKey = Index(
+    'idx_image_visual_status_key',
+    'CREATE INDEX idx_image_visual_status_key ON image_visual_embeddings (status, stable_key)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -6493,6 +7157,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     semanticEmbeddings,
     videoVisualStatus,
     videoVisualFrames,
+    imageVisualEmbeddings,
     idxMediaCategoryDateModified,
     idxMediaVolumeMediaStoreId,
     idxMediaMimeType,
@@ -6507,6 +7172,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxSemanticStatusKey,
     idxVvfConceptConf,
     idxVvfStableKey,
+    idxImageVisualStatusKey,
   ];
 }
 
@@ -9581,6 +10247,340 @@ typedef $$VideoVisualFramesTableProcessedTableManager =
       VideoVisualFrame,
       PrefetchHooks Function()
     >;
+typedef $$ImageVisualEmbeddingsTableCreateCompanionBuilder =
+    ImageVisualEmbeddingsCompanion Function({
+      required String stableKey,
+      required int sourceRevision,
+      required String modelId,
+      required int dimensions,
+      Value<Uint8List?> embeddingData,
+      Value<String?> quantization,
+      required String status,
+      Value<String?> errorCode,
+      required int createdAt,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ImageVisualEmbeddingsTableUpdateCompanionBuilder =
+    ImageVisualEmbeddingsCompanion Function({
+      Value<String> stableKey,
+      Value<int> sourceRevision,
+      Value<String> modelId,
+      Value<int> dimensions,
+      Value<Uint8List?> embeddingData,
+      Value<String?> quantization,
+      Value<String> status,
+      Value<String?> errorCode,
+      Value<int> createdAt,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$ImageVisualEmbeddingsTableFilterComposer
+    extends Composer<_$AppDatabase, $ImageVisualEmbeddingsTable> {
+  $$ImageVisualEmbeddingsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get modelId => $composableBuilder(
+    column: $table.modelId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dimensions => $composableBuilder(
+    column: $table.dimensions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<Uint8List> get embeddingData => $composableBuilder(
+    column: $table.embeddingData,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get quantization => $composableBuilder(
+    column: $table.quantization,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ImageVisualEmbeddingsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ImageVisualEmbeddingsTable> {
+  $$ImageVisualEmbeddingsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get stableKey => $composableBuilder(
+    column: $table.stableKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get modelId => $composableBuilder(
+    column: $table.modelId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dimensions => $composableBuilder(
+    column: $table.dimensions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<Uint8List> get embeddingData => $composableBuilder(
+    column: $table.embeddingData,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get quantization => $composableBuilder(
+    column: $table.quantization,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get status => $composableBuilder(
+    column: $table.status,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get errorCode => $composableBuilder(
+    column: $table.errorCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ImageVisualEmbeddingsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ImageVisualEmbeddingsTable> {
+  $$ImageVisualEmbeddingsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get stableKey =>
+      $composableBuilder(column: $table.stableKey, builder: (column) => column);
+
+  GeneratedColumn<int> get sourceRevision => $composableBuilder(
+    column: $table.sourceRevision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get modelId =>
+      $composableBuilder(column: $table.modelId, builder: (column) => column);
+
+  GeneratedColumn<int> get dimensions => $composableBuilder(
+    column: $table.dimensions,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<Uint8List> get embeddingData => $composableBuilder(
+    column: $table.embeddingData,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get quantization => $composableBuilder(
+    column: $table.quantization,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get errorCode =>
+      $composableBuilder(column: $table.errorCode, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$ImageVisualEmbeddingsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ImageVisualEmbeddingsTable,
+          ImageVisualEmbedding,
+          $$ImageVisualEmbeddingsTableFilterComposer,
+          $$ImageVisualEmbeddingsTableOrderingComposer,
+          $$ImageVisualEmbeddingsTableAnnotationComposer,
+          $$ImageVisualEmbeddingsTableCreateCompanionBuilder,
+          $$ImageVisualEmbeddingsTableUpdateCompanionBuilder,
+          (
+            ImageVisualEmbedding,
+            BaseReferences<
+              _$AppDatabase,
+              $ImageVisualEmbeddingsTable,
+              ImageVisualEmbedding
+            >,
+          ),
+          ImageVisualEmbedding,
+          PrefetchHooks Function()
+        > {
+  $$ImageVisualEmbeddingsTableTableManager(
+    _$AppDatabase db,
+    $ImageVisualEmbeddingsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ImageVisualEmbeddingsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$ImageVisualEmbeddingsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ImageVisualEmbeddingsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> stableKey = const Value.absent(),
+                Value<int> sourceRevision = const Value.absent(),
+                Value<String> modelId = const Value.absent(),
+                Value<int> dimensions = const Value.absent(),
+                Value<Uint8List?> embeddingData = const Value.absent(),
+                Value<String?> quantization = const Value.absent(),
+                Value<String> status = const Value.absent(),
+                Value<String?> errorCode = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ImageVisualEmbeddingsCompanion(
+                stableKey: stableKey,
+                sourceRevision: sourceRevision,
+                modelId: modelId,
+                dimensions: dimensions,
+                embeddingData: embeddingData,
+                quantization: quantization,
+                status: status,
+                errorCode: errorCode,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String stableKey,
+                required int sourceRevision,
+                required String modelId,
+                required int dimensions,
+                Value<Uint8List?> embeddingData = const Value.absent(),
+                Value<String?> quantization = const Value.absent(),
+                required String status,
+                Value<String?> errorCode = const Value.absent(),
+                required int createdAt,
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ImageVisualEmbeddingsCompanion.insert(
+                stableKey: stableKey,
+                sourceRevision: sourceRevision,
+                modelId: modelId,
+                dimensions: dimensions,
+                embeddingData: embeddingData,
+                quantization: quantization,
+                status: status,
+                errorCode: errorCode,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<
+                    $ImageVisualEmbeddingsTable,
+                    ImageVisualEmbedding
+                  >(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $ImageVisualEmbeddingsTable,
+                    ImageVisualEmbedding
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ImageVisualEmbeddingsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ImageVisualEmbeddingsTable,
+      ImageVisualEmbedding,
+      $$ImageVisualEmbeddingsTableFilterComposer,
+      $$ImageVisualEmbeddingsTableOrderingComposer,
+      $$ImageVisualEmbeddingsTableAnnotationComposer,
+      $$ImageVisualEmbeddingsTableCreateCompanionBuilder,
+      $$ImageVisualEmbeddingsTableUpdateCompanionBuilder,
+      (
+        ImageVisualEmbedding,
+        BaseReferences<
+          _$AppDatabase,
+          $ImageVisualEmbeddingsTable,
+          ImageVisualEmbedding
+        >,
+      ),
+      ImageVisualEmbedding,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9603,4 +10603,6 @@ class $AppDatabaseManager {
       $$VideoVisualStatusTableTableManager(_db, _db.videoVisualStatus);
   $$VideoVisualFramesTableTableManager get videoVisualFrames =>
       $$VideoVisualFramesTableTableManager(_db, _db.videoVisualFrames);
+  $$ImageVisualEmbeddingsTableTableManager get imageVisualEmbeddings =>
+      $$ImageVisualEmbeddingsTableTableManager(_db, _db.imageVisualEmbeddings);
 }

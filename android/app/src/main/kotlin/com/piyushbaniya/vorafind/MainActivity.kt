@@ -5,6 +5,7 @@ import com.piyushbaniya.vorafind.content.ContentAccessBridge
 import com.piyushbaniya.vorafind.discovery.DiscoveryBridge
 import com.piyushbaniya.vorafind.documents.DocumentBridge
 import com.piyushbaniya.vorafind.ocr.OcrBridge
+import com.piyushbaniya.vorafind.visual.ImageVisualBridge
 import com.piyushbaniya.vorafind.visual.VideoFrameBridge
 import com.tom_roush.pdfbox.android.PDFBoxResourceLoader
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -24,5 +25,6 @@ class MainActivity : FlutterFragmentActivity() {
         OcrBridge(this).register(flutterEngine.dartExecutor.binaryMessenger)
         DocumentBridge(this).register(flutterEngine.dartExecutor.binaryMessenger)
         VideoFrameBridge(this).register(flutterEngine.dartExecutor.binaryMessenger)
+        ImageVisualBridge(this).register(flutterEngine.dartExecutor.binaryMessenger)
     }
 }

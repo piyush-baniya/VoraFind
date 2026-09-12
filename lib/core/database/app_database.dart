@@ -14,6 +14,7 @@ import '../semantic/semantic_models.dart'
     show SemanticContentType, SemanticContentTypeConverter;
 import 'document_content_table.dart';
 import 'documents_table.dart';
+import 'image_visual_tables.dart';
 import 'index_state_table.dart';
 import 'media_items_table.dart';
 import 'ocr_content_table.dart';
@@ -38,7 +39,9 @@ part 'app_database.g.dart';
 /// v6 adds `semantic_embeddings`, the local vector store for semantic search
 /// (docs `semantic-search.md`). Schema v7 adds `video_visual_status` and
 /// `video_visual_frames`, the derived store for index-time video frame
-/// classification (docs `video-visual-search.md`).
+/// classification (docs `video-visual-search.md`). Schema v8 adds
+/// `image_visual_embeddings`, the derived feature store for local
+/// image-to-image similarity (docs `similar-image-search.md`).
 @DriftDatabase(
   tables: [
     MediaItems,
@@ -50,6 +53,7 @@ part 'app_database.g.dart';
     SemanticEmbeddings,
     VideoVisualStatus,
     VideoVisualFrames,
+    ImageVisualEmbeddings,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -60,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forApp() : super(driftDatabase(name: 'vorafind'));
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -93,6 +97,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 7) {
         await m.createTable(videoVisualStatus);
         await m.createTable(videoVisualFrames);
+      }
+      if (from < 8) {
+        await m.createTable(imageVisualEmbeddings);
       }
     },
   );
